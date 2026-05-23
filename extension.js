@@ -1,8 +1,8 @@
 // extension.js
-import vscode from 'vscode';
-import { obtenerGrafo } from './scanner.js';
+const vscode = require('vscode');
+const { obtenerGrafo } = require('./scanner.js');
 
-export function activate(context) {
+function activate(context) {
     console.log('¡La extensión "Obsidian React Graph" está activa!');
 
     let disposable = vscode.commands.registerCommand('antigravity-obsidian-react.showGraph', function () {
@@ -49,7 +49,7 @@ export function activate(context) {
     context.subscriptions.push(disposable);
 }
 
-export function deactivate() {}
+function deactivate() {}
 
 function obtenerHtmlWebview(grafo) {
     return `
@@ -289,3 +289,5 @@ function obtenerHtmlWebview(grafo) {
 </html>
 `;
 }
+
+module.exports = { activate, deactivate };

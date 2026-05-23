@@ -16,7 +16,7 @@
     "commands": [
       {
         "command": "antigravity-obsidian-react.showGraph",
-        "title": "Obsidian React: Mostrar Grafo de Dependencias",
+        "title": "Mostrar Grafo de Dependencias",
         "category": "Obsidian React"
       }
     ],
@@ -44,7 +44,6 @@
       "onFail": "download"
     }
   },
-  "type": "module",
   "dependencies": {
     "acorn": "^8.16.0",
     "acorn-walk": "^8.3.5"

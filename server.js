@@ -1,7 +1,7 @@
 // server.js
-import http from 'http';
-import fs from 'fs';
-import path from 'path';
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 const PORT = 3000;
 

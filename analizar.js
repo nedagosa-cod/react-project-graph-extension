@@ -1,6 +1,6 @@
 // analizar.js
-import fs from 'fs';
-import { obtenerGrafo } from './scanner.js';
+const fs = require('fs');
+const { obtenerGrafo } = require('./scanner.js');
 
 console.log('🚀 Escaneando el proyecto y construyendo el grafo...');
 // Escaneamos el directorio de trabajo actual

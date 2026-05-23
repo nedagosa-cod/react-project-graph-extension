@@ -1,10 +1,10 @@
 // scanner.js
-import fs from 'fs';
-import path from 'path';
-import * as acorn from 'acorn';
-import * as walk from 'acorn-walk';
+const fs = require('fs');
+const path = require('path');
+const acorn = require('acorn');
+const walk = require('acorn-walk');
 
-export function obtenerGrafo(rutaProyecto) {
+function obtenerGrafo(rutaProyecto) {
     const srcDir = path.join(rutaProyecto, 'src');
     const grafo = {
         nodes: [],
@@ -86,3 +86,5 @@ export function obtenerGrafo(rutaProyecto) {
 
     return grafo;
 }
+
+module.exports = { obtenerGrafo };

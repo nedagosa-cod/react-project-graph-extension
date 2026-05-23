@@ -1,8 +1,35 @@
 {
-  "name": "Antigravity Extension",
+  "name": "antigravity-obsidian-react",
+  "displayName": "Obsidian React Graph",
+  "description": "Visualiza el grafo de dependencias de tu proyecto React al estilo de Obsidian.",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "publisher": "antigravity",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "antigravity-obsidian-react.showGraph",
+        "title": "Obsidian React: Mostrar Grafo de Dependencias",
+        "category": "Obsidian React"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "antigravity-obsidian-react.showGraph",
+          "group": "navigation",
+          "when": "resourceExtname == .js || resourceExtname == .jsx"
+        }
+      ]
+    }
+  },
   "scripts": {
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -21,5 +48,8 @@
   "dependencies": {
     "acorn": "^8.16.0",
     "acorn-walk": "^8.3.5"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0"
   }
 }

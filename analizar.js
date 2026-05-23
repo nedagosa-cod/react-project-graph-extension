@@ -1,93 +1,10 @@
 // analizar.js
 import fs from 'fs';
-import path from 'path';
-import * as acorn from 'acorn';
-import * as walk from 'acorn-walk';
+import { obtenerGrafo } from './scanner.js';
 
-// Aquí guardaremos la estructura del grafo estilo Obsidian
-const grafo = {
-    nodes: [], // Lista de archivos encontrados
-    links: []  // Lista de conexiones (quién importa a quién)
-};
-
-// Función para buscar archivos de forma recursiva en una carpeta
-function escanearCarpeta(directorio) {
-    const archivos = fs.readdirSync(directorio);
-
-    for (const archivo of archivos) {
-        const rutaCompleta = path.join(directorio, archivo);
-        const stats = fs.statSync(rutaCompleta);
-
-        if (stats.isDirectory()) {
-            // Si es una carpeta, entramos en ella (recursión)
-            escanearCarpeta(rutaCompleta);
-        } else if (archivo.endsWith('.js') || archivo.endsWith('.jsx')) {
-            // Si es un archivo JavaScript, lo procesamos
-            procesarArchivo(rutaCompleta);
-        }
-    }
-}
-
-// Función para leer el archivo y extraer sus imports
-function procesarArchivo(rutaArchivo) {
-    // Normalizamos la ruta del archivo actual para usar barras '/'
-    const idArchivo = rutaArchivo.replace(/\\/g, '/');
-
-    grafo.nodes.push({ id: idArchivo, name: path.basename(rutaArchivo), type: 'local' });
-
-    try {
-        const codigo = fs.readFileSync(rutaArchivo, 'utf8');
-        const ast = acorn.parse(codigo, { ecmaVersion: 2022, sourceType: 'module' });
-
-        walk.simple(ast, {
-            ImportDeclaration(node) {
-                const importPath = node.source.value;
-                let targetId = importPath;
-
-                // Si el import empieza con '.' significa que es una ruta relativa de nuestro proyecto
-                if (importPath.startsWith('.')) {
-                    // Obtenemos la carpeta donde está el archivo actual
-                    const contenedorDir = path.dirname(rutaArchivo);
-                    // Resolvemos la ruta combinando la carpeta con el destino del import
-                    const rutaResuelta = path.join(contenedorDir, importPath);
-
-                    // Nos aseguramos de mantener el formato con barras '/'
-                    targetId = rutaResuelta.replace(/\\/g, '/');
-                }
-
-                grafo.links.push({
-                    source: idArchivo,
-                    target: targetId
-                });
-            }
-        });
-    } catch (error) {
-        console.log(`⚠️ No se pudo analizar el archivo ${idArchivo}: ${error.message}`);
-    }
-}
-
-// --- EJECUCIÓN Y GENERACIÓN DE LA INTERFAZ VISUAL ---
 console.log('🚀 Escaneando el proyecto y construyendo el grafo...');
-escanearCarpeta('./src');
-
-// --- POST-PROCESAMIENTO PARA EVITAR ERRORES D3 ---
-// Asegurarnos de que todos los destinos de enlaces existan en la lista de nodos
-const nodosExistentes = new Set(grafo.nodes.map(n => n.id));
-
-grafo.links.forEach(link => {
-    if (!nodosExistentes.has(link.target)) {
-        // Si no empieza con '.' ni 'src/', es muy probable que sea una dependencia externa (como 'react')
-        const esExterno = !link.target.startsWith('src/') && !link.target.startsWith('./src/');
-        const tipo = esExterno ? 'external' : 'missing';
-
-        grafo.nodes.push({
-            id: link.target,
-            name: path.basename(link.target),
-            type: tipo
-        });
-        nodosExistentes.add(link.target);
-    }
-});
+// Escaneamos el directorio de trabajo actual
+const grafo = obtenerGrafo(process.cwd());
 
 console.log('\n🖥️ Generando interfaz visual estilo Obsidian (index.html)...');
 
@@ -349,4 +266,5 @@ fs.writeFileSync('./index.html', htmlContent, 'utf8');
 console.log('✨ ¡Hecho! Se ha actualizado "index.html".');
 console.log('\n💡 Para ver el grafo interactivo y evitar errores de seguridad "file://", inicia el servidor local:');
 console.log('   npm start');
-console.log('   (o abre http://localhost:3000 después de iniciar)\n');
+console.log('   (o abre http://localhost:3000 después de iniciar)\n');
+

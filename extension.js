@@ -101,18 +101,32 @@ function obtenerHtmlWebview(grafo) {
         .nodo:active {
             cursor: grabbing;
         }
-        .nodo.local { fill: #7b2cbf; }
-        .nodo.external { fill: #00b4d8; }
+        
+        /* Colores de Arquitectura Limpia */
+        .nodo.domain { fill: #3a86f8; }
+        .nodo.data { fill: #2ec4b6; }
+        .nodo.hooks { fill: #ffb703; }
+        .nodo.logic { fill: #ff006e; }
+        .nodo.presentation { fill: #8338ec; }
+        .nodo.external { fill: #5c677d; }
+        .nodo.asset { fill: #f77f00; }
         .nodo.missing {
             fill: #e63946;
             stroke: #ffb703;
             stroke-dasharray: 3, 3;
         }
+        
         .nodo:hover {
             stroke: var(--vscode-editor-foreground, #fff);
             stroke-width: 2.5px;
             filter: brightness(1.2);
         }
+        .nodo.cycle-highlight {
+            stroke: #ff9f1c !important;
+            stroke-width: 3px !important;
+            filter: drop-shadow(0 0 5px #ff9f1c);
+        }
+
         .enlace {
             stroke: var(--vscode-editorLineNumber-foreground, #4a4a4a);
             stroke-opacity: 0.4;
@@ -124,6 +138,30 @@ function obtenerHtmlWebview(grafo) {
             stroke-opacity: 1;
             stroke-width: 2.5px;
         }
+        .enlace.violation {
+            stroke: #e63946 !important;
+            stroke-opacity: 0.85;
+            stroke-width: 2.5px;
+            stroke-dasharray: 6, 4;
+            animation: dash-animation 25s linear infinite;
+        }
+        @keyframes dash-animation {
+            from { stroke-dashoffset: 0; }
+            to { stroke-dashoffset: 100; }
+        }
+        
+        .enlace.cycle {
+            stroke: #ff9f1c !important;
+            stroke-opacity: 0.95;
+            stroke-width: 3px;
+            stroke-dasharray: 5, 3;
+            animation: cycle-pulse-animation 15s linear infinite;
+        }
+        @keyframes cycle-pulse-animation {
+            from { stroke-dashoffset: 0; }
+            to { stroke-dashoffset: -100; }
+        }
+        
         .etiqueta {
             fill: var(--vscode-descriptionForeground, #c9ada7);
             font-size: 11px;
@@ -145,10 +183,10 @@ function obtenerHtmlWebview(grafo) {
             border: 1px solid var(--vscode-sideBar-border, rgba(255, 255, 255, 0.1));
             border-radius: 12px;
             padding: 16px;
-            font-size: 13px;
+            font-size: 12px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
             pointer-events: auto;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
@@ -156,7 +194,7 @@ function obtenerHtmlWebview(grafo) {
             font-weight: 600;
             margin-bottom: 4px;
             color: var(--vscode-sideBarTitle-foreground, #fff);
-            font-size: 14px;
+            font-size: 13px;
         }
         .legend-item {
             display: flex;
@@ -171,8 +209,13 @@ function obtenerHtmlWebview(grafo) {
             display: inline-block;
             box-shadow: 0 0 4px rgba(0,0,0,0.5);
         }
-        .color-box.local { background-color: #7b2cbf; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
-        .color-box.external { background-color: #00b4d8; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
+        .color-box.domain { background-color: #3a86f8; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
+        .color-box.data { background-color: #2ec4b6; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
+        .color-box.hooks { background-color: #ffb703; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
+        .color-box.logic { background-color: #ff006e; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
+        .color-box.presentation { background-color: #8338ec; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
+        .color-box.external { background-color: #5c677d; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
+        .color-box.asset { background-color: #f77f00; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
         .color-box.missing { background-color: #e63946; border: 1px dashed #ffb703; }
 
         /* Panel de Controles Flotante */
@@ -185,7 +228,7 @@ function obtenerHtmlWebview(grafo) {
             border-radius: 12px;
             padding: 18px;
             font-size: 13px;
-            width: 250px;
+            width: 260px;
             display: flex;
             flex-direction: column;
             gap: 16px;
@@ -319,25 +362,270 @@ function obtenerHtmlWebview(grafo) {
         .inspector-item:hover {
             color: var(--vscode-textLink-activeForeground, #ffb703);
         }
+
+        /* Alertas de Infracción */
+        #inspector-violation {
+            background: rgba(230, 57, 70, 0.12);
+            border: 1px solid #e63946;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-top: 8px;
+            color: #ffb3b7;
+            font-size: 11px;
+            display: none;
+        }
+        .violation-alert-title {
+            font-weight: 700;
+            color: #e63946;
+            margin-bottom: 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .violation-alert-detail {
+            margin-top: 4px;
+            line-height: 1.35;
+        }
+
+        /* Alertas de Ciclo */
+        #inspector-cycle {
+            background: rgba(255, 159, 28, 0.12);
+            border: 1px solid #ff9f1c;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-top: 8px;
+            color: #ffe6c7;
+            font-size: 11px;
+            display: none;
+        }
+        .cycle-alert-title {
+            font-weight: 700;
+            color: #ff9f1c;
+            margin-bottom: 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .cycle-alert-detail {
+            margin-top: 4px;
+            line-height: 1.35;
+        }
+        .cycle-path-step {
+            color: #3794ff;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .cycle-path-step:hover {
+            color: #ffb703;
+        }
+
+        /* Encabezados de Columnas */
+        #column-headers {
+            position: absolute;
+            top: 70px;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            pointer-events: none;
+            display: none;
+        }
+        .column-header {
+            position: absolute;
+            transform: translateX(-50%);
+            width: 130px;
+            text-align: center;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--vscode-descriptionForeground, #888);
+            border-bottom: 2px dashed rgba(255, 255, 255, 0.1);
+            padding-bottom: 6px;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Estilos de Radio de Impacto */
+        .nodo.impact-source {
+            stroke: #d00000 !important;
+            stroke-width: 4px !important;
+            filter: drop-shadow(0 0 8px #d00000) brightness(1.2);
+        }
+        .nodo.impacted {
+            stroke: #ff9f1c !important;
+            stroke-width: 2.5px !important;
+            filter: drop-shadow(0 0 5px #ff9f1c);
+        }
+        .enlace.impact-path {
+            stroke: #ff3c38 !important;
+            stroke-opacity: 0.95 !important;
+            stroke-width: 3px !important;
+            stroke-dasharray: 4, 2;
+            animation: impact-flow 8s linear infinite;
+        }
+        @keyframes impact-flow {
+            from { stroke-dashoffset: 0; }
+            to { stroke-dashoffset: -100; }
+        }
+        
+        #inspector-blast {
+            border-top: 1px solid var(--vscode-sideBar-border, rgba(255, 255, 255, 0.1));
+            padding-top: 10px;
+            margin-top: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .blast-btn {
+            background-color: var(--vscode-button-background, #7b2cbf);
+            color: var(--vscode-button-foreground, #fff);
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.2s;
+        }
+        .blast-btn:hover {
+            background-color: var(--vscode-button-hoverBackground, #9d4edd);
+        }
+        .blast-btn.reset {
+            background-color: var(--vscode-button-secondaryBackground, #3a3a3a);
+            color: var(--vscode-button-secondaryForeground, #ccc);
+        }
+        .blast-btn.reset:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground, #4f4f4f);
+        }
+        .blast-metric-box {
+            background: rgba(208, 0, 0, 0.12);
+            border: 1px solid #d00000;
+            border-radius: 8px;
+            padding: 8px 10px;
+            color: #ffd6d6;
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        /* Estilos de Código Muerto */
+        .nodo.dead-highlight {
+            fill: #222222 !important;
+            stroke: #ff9f1c !important;
+            stroke-width: 2.5px !important;
+            stroke-dasharray: 4, 3;
+            filter: drop-shadow(0 0 5px #ff9f1c);
+        }
+        #inspector-deadcode {
+            background: rgba(255, 159, 28, 0.12);
+            border: 1px solid #ff9f1c;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-top: 8px;
+            color: #ffe6c7;
+            font-size: 11px;
+            display: none;
+        }
+        .deadcode-alert-title {
+            font-weight: 700;
+            color: #ff9f1c;
+            margin-bottom: 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .deadcode-alert-detail {
+            margin-top: 4px;
+            line-height: 1.35;
+        }
+        
+        /* Estilos de God Files (Complejidad vs Acoplamiento) */
+        .nodo.god-highlight {
+            stroke: #d00000 !important;
+            stroke-width: 3.5px !important;
+            filter: drop-shadow(0 0 8px #d00000);
+            animation: god-pulse 2s infinite ease-in-out;
+        }
+        @keyframes god-pulse {
+            0% { filter: drop-shadow(0 0 4px #d00000); }
+            50% { filter: drop-shadow(0 0 12px #d00000); }
+            100% { filter: drop-shadow(0 0 4px #d00000); }
+        }
+        #inspector-godfile {
+            background: rgba(208, 0, 0, 0.12);
+            border: 1px solid #d00000;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-top: 8px;
+            color: #ffd6d6;
+            font-size: 11px;
+            display: none;
+        }
+        .godfile-alert-title {
+            font-weight: 700;
+            color: #d00000;
+            margin-bottom: 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .godfile-alert-detail {
+            margin-top: 4px;
+            line-height: 1.35;
+        }
     </style>
 </head>
 <body>
 
     <svg id="grafo"></svg>
+    <div id="column-headers"></div>
 
     <div id="legend">
-        <div class="legend-title">Grafo de Dependencias</div>
+        <div class="legend-title">Capas de Arquitectura</div>
         <div class="legend-item">
-            <span class="color-box local"></span>
-            <span>Archivos Locales (.js, .jsx, .ts, .tsx)</span>
+            <span class="color-box domain"></span>
+            <span>Dominio (Tipos/Modelos)</span>
+        </div>
+        <div class="legend-item">
+            <span class="color-box data"></span>
+            <span>Infraestructura (Datos/API/Utils)</span>
+        </div>
+        <div class="legend-item">
+            <span class="color-box hooks"></span>
+            <span>Aplicación (Custom Hooks)</span>
+        </div>
+        <div class="legend-item">
+            <span class="color-box logic"></span>
+            <span>Negocio (Estado/Contexto)</span>
+        </div>
+        <div class="legend-item">
+            <span class="color-box presentation"></span>
+            <span>Presentación (UI/Componentes)</span>
         </div>
         <div class="legend-item">
             <span class="color-box external"></span>
             <span>Módulos Externos (npm)</span>
         </div>
         <div class="legend-item">
+            <span class="color-box asset"></span>
+            <span>Recursos (Assets/Styles/JSON)</span>
+        </div>
+        <div class="legend-item">
             <span class="color-box missing"></span>
-            <span>Importación Faltante / No Encontrada</span>
+            <span>Importación Faltante</span>
+        </div>
+        <div class="legend-item">
+            <span class="color-box" style="border: 2px dashed #ff9f1c; background-color: transparent;"></span>
+            <span>Participa en Ciclo Circular</span>
+        </div>
+        <div class="legend-item">
+            <span class="color-box" style="border: 2px dashed #ff9f1c; background-color: #222;"></span>
+            <span>Código Muerto / Archivo Huérfano</span>
+        </div>
+        <div class="legend-item">
+            <span class="color-box" style="border: 2px solid #d00000; background-color: transparent; box-shadow: 0 0 6px #d00000;"></span>
+            <span>Alta Complejidad / God File</span>
         </div>
     </div>
 
@@ -351,6 +639,10 @@ function obtenerHtmlWebview(grafo) {
             <div class="checkbox-group">
                 <label><input type="checkbox" id="toggle-external" checked> Mostrar Módulos Externos</label>
                 <label><input type="checkbox" id="toggle-missing" checked> Mostrar Faltantes</label>
+                <label><input type="checkbox" id="toggle-cluster"> Agrupar por Capas</label>
+                <label><input type="checkbox" id="toggle-cycles"> Resaltar Ciclos</label>
+                <label><input type="checkbox" id="toggle-deadcode"> Resaltar Código Muerto</label>
+                <label><input type="checkbox" id="toggle-godfiles"> Resaltar God Files</label>
             </div>
         </div>
         <div class="control-section">
@@ -377,15 +669,34 @@ function obtenerHtmlWebview(grafo) {
         <div id="inspector" style="display: none;">
             <span class="control-label">Inspector de Nodo</span>
             <div id="inspector-content" style="width: 100%;">
-                <div class="inspector-filename" id="ins-name"></div>
-                <div class="inspector-path" id="ins-path"></div>
-                <div class="inspector-detail" id="ins-size"></div>
-                
-                <div class="inspector-subtitle">Dependencias (<span id="ins-out-count">0</span>)</div>
-                <div class="inspector-list" id="ins-out-list"></div>
-                
-                <div class="inspector-subtitle">Dependientes (<span id="ins-in-count">0</span>)</div>
-                <div class="inspector-list" id="ins-in-list"></div>
+                <div id="inspector-node-details">
+                    <div class="inspector-filename" id="ins-name"></div>
+                    <div class="inspector-path" id="ins-path"></div>
+                    <div class="inspector-detail" id="ins-layer"></div>
+                    <div class="inspector-detail" id="ins-size"></div>
+                    
+                    <!-- Contenedor para alerta de infracción de arquitectura -->
+                    <div id="inspector-violation"></div>
+                    
+                    <!-- Contenedor para alerta de dependencia circular -->
+                    <div id="inspector-cycle"></div>
+                    
+                    <!-- Contenedor para análisis de impacto -->
+                    <div id="inspector-blast"></div>
+                    
+                    <!-- Contenedor para alerta de código muerto -->
+                    <div id="inspector-deadcode"></div>
+                    
+                    <!-- Contenedor para alerta de god file -->
+                    <div id="inspector-godfile"></div>
+                    
+                    <div class="inspector-subtitle">Dependencias (<span id="ins-out-count">0</span>)</div>
+                    <div class="inspector-list" id="ins-out-list"></div>
+                    
+                    <div class="inspector-subtitle">Dependientes (<span id="ins-in-count">0</span>)</div>
+                    <div class="inspector-list" id="ins-in-list"></div>
+                </div>
+                <div id="inspector-general-report" style="display: none;"></div>
             </div>
         </div>
     </div>
@@ -407,6 +718,275 @@ function obtenerHtmlWebview(grafo) {
             }
         });
 
+        function esCodigoMuerto(n) {
+            if (n.type !== 'local') return false;
+            if ((inDegree[n.id] || 0) > 0) return false;
+            
+            // Filtrar archivos de entrada comunes (case insensitive)
+            const nombre = n.name.toLowerCase();
+            const esPuntoEntrada = nombre === 'main.tsx' || nombre === 'main.ts' || nombre === 'main.jsx' || nombre === 'main.js' ||
+                                   nombre === 'index.tsx' || nombre === 'index.ts' || nombre === 'index.jsx' || nombre === 'index.js' ||
+                                   nombre === 'app.tsx' || nombre === 'app.ts' || nombre === 'app.jsx' || nombre === 'app.js';
+            return !esPuntoEntrada;
+        }
+
+        function mostrarReporteGeneralCodigoMuerto() {
+            d3.select("#inspector").style("display", "flex");
+            d3.select("#inspector-node-details").style("display", "none");
+            
+            const reportContainer = d3.select("#inspector-general-report");
+            reportContainer.style("display", "block").html("");
+            
+            // Buscar todos los nodos locales que son código muerto
+            const nodosMuertos = activeNodes.filter(esCodigoMuerto);
+            
+            reportContainer.append("div")
+                .attr("class", "deadcode-alert-title")
+                .style("font-size", "12px")
+                .style("margin-bottom", "6px")
+                .text("⚠️ Limpieza de Código Muerto");
+                
+            reportContainer.append("div")
+                .style("font-size", "11px")
+                .style("color", "var(--vscode-sideBar-foreground, #ccc)")
+                .style("margin-bottom", "10px")
+                .text("Se detectaron " + nodosMuertos.length + " archivos locales huérfanos (sin importaciones entrantes).");
+                
+            if (nodosMuertos.length > 0) {
+                const listDiv = reportContainer.append("div")
+                    .style("max-height", "220px")
+                    .style("overflow-y", "auto")
+                    .style("display", "flex")
+                    .style("flex-direction", "column")
+                    .style("gap", "6px");
+                    
+                nodosMuertos.forEach(n => {
+                    const item = listDiv.append("div")
+                        .style("display", "flex")
+                        .style("flex-direction", "column")
+                        .style("padding", "6px")
+                        .style("background", "rgba(255, 255, 255, 0.03)")
+                        .style("border-radius", "4px")
+                        .style("cursor", "pointer")
+                        .style("transition", "background 0.2s")
+                        .on("mouseover", function() { d3.select(this).style("background", "rgba(255, 255, 255, 0.08)"); })
+                        .on("mouseout", function() { d3.select(this).style("background", "rgba(255, 255, 255, 0.03)"); })
+                        .on("click", (e) => {
+                            e.stopPropagation();
+                            handleNodeClick(e, n);
+                        });
+                        
+                    item.append("span")
+                        .style("font-weight", "600")
+                        .style("color", "#ffb703")
+                        .style("font-size", "11px")
+                        .text(n.name);
+                        
+                    item.append("span")
+                        .style("font-size", "9px")
+                        .style("color", "var(--vscode-descriptionForeground, #888)")
+                        .style("word-break", "break-all")
+                        .text(n.id);
+                });
+            } else {
+                reportContainer.append("div")
+                    .style("font-size", "11px")
+                    .style("color", "#2ec4b6")
+                    .style("font-weight", "600")
+                    .text("🎉 ¡Excelente! No se detectó código muerto.");
+            }
+        }
+
+        function calcularMetricasGod(n) {
+            if (n.type !== 'local') return { coupling: 0, complexity: 0, score: 0, esGod: false };
+            
+            // Grado de salida (out-degree): cuántos archivos importa
+            const outDegree = data.links.filter(l => (l.source?.id || l.source) === n.id).length;
+            // Grado de entrada (in-degree): cuántos archivos lo importan
+            const inDegreeVal = inDegree[n.id] || 0;
+            
+            const coupling = inDegreeVal + outDegree;
+            const lines = n.lines || 0;
+            const score = coupling * (lines / 100);
+            
+            return {
+                coupling,
+                complexity: lines,
+                score: parseFloat(score.toFixed(1)),
+                esGod: score >= 50
+            };
+        }
+
+        function mostrarReporteGeneralGodFiles() {
+            d3.select("#inspector").style("display", "flex");
+            d3.select("#inspector-node-details").style("display", "none");
+            
+            const reportContainer = d3.select("#inspector-general-report");
+            reportContainer.style("display", "block").html("");
+            
+            // Buscar y calcular métricas para todos los nodos locales, ordenados por score desc
+            const nodosConMetricas = activeNodes
+                .filter(n => n.type === 'local')
+                .map(n => ({ node: n, stats: calcularMetricasGod(n) }))
+                .sort((a, b) => b.stats.score - a.stats.score);
+            
+            const godFiles = nodosConMetricas.filter(item => item.stats.esGod);
+            
+            reportContainer.append("div")
+                .attr("class", "godfile-alert-title")
+                .style("font-size", "12px")
+                .style("margin-bottom", "6px")
+                .text("⚠️ Auditoría de God Files");
+                
+            reportContainer.append("div")
+                .style("font-size", "11px")
+                .style("color", "var(--vscode-sideBar-foreground, #ccc)")
+                .style("margin-bottom", "10px")
+                .text("Se detectaron " + godFiles.length + " archivos con God Score >= 50 (Complejidad y Acoplamiento excesivos).");
+                
+            if (nodosConMetricas.length > 0) {
+                const listDiv = reportContainer.append("div")
+                    .style("max-height", "240px")
+                    .style("overflow-y", "auto")
+                    .style("display", "flex")
+                    .style("flex-direction", "column")
+                    .style("gap", "6px");
+                    
+                nodosConMetricas.forEach(item => {
+                    const n = item.node;
+                    const stats = item.stats;
+                    
+                    const itemDiv = listDiv.append("div")
+                        .style("display", "flex")
+                        .style("flex-direction", "column")
+                        .style("padding", "6px")
+                        .style("background", stats.esGod ? "rgba(208, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.03)")
+                        .style("border", stats.esGod ? "1px solid rgba(208, 0, 0, 0.4)" : "1px solid transparent")
+                        .style("border-radius", "4px")
+                        .style("cursor", "pointer")
+                        .style("transition", "background 0.2s")
+                        .on("mouseover", function() { d3.select(this).style("background", stats.esGod ? "rgba(208, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.08)"); })
+                        .on("mouseout", function() { d3.select(this).style("background", stats.esGod ? "rgba(208, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.03)"); })
+                        .on("click", (e) => {
+                            e.stopPropagation();
+                            handleNodeClick(e, n);
+                        });
+                        
+                    const header = itemDiv.append("div")
+                        .style("display", "flex")
+                        .style("justify-content", "space-between")
+                        .style("align-items", "center");
+                        
+                    header.append("span")
+                        .style("font-weight", "600")
+                        .style("color", stats.esGod ? "#ff4d4d" : "#ffb703")
+                        .style("font-size", "11px")
+                        .text(n.name);
+                        
+                    header.append("span")
+                        .style("font-weight", "700")
+                        .style("font-size", "10px")
+                        .style("color", stats.esGod ? "#ff4d4d" : "var(--vscode-descriptionForeground, #888)")
+                        .text("Score: " + stats.score);
+                        
+                    itemDiv.append("span")
+                        .style("font-size", "9px")
+                        .style("color", "var(--vscode-descriptionForeground, #888)")
+                        .style("margin-top", "2px")
+                        .text("Líneas: " + stats.complexity + " | Conexiones: " + stats.coupling);
+                });
+            }
+        }
+
+        // Configuración de visualización de Capas
+        const capaEspanol = {
+            'domain': 'Dominio (Tipos/Modelos)',
+            'data': 'Infraestructura (Datos/API/Utils)',
+            'hooks': 'Aplicación (Custom Hooks)',
+            'logic': 'Negocio (Estado/Contexto)',
+            'presentation': 'Presentación (UI/Componentes)',
+            'external': 'Módulo Externo (npm)',
+            'missing': 'Importación Faltante',
+            'asset': 'Recurso / Asset'
+        };
+
+        const capaColores = {
+            'domain': '#3a86f8',
+            'data': '#2ec4b6',
+            'hooks': '#ffb703',
+            'logic': '#ff006e',
+            'presentation': '#8338ec',
+            'external': '#5c677d',
+            'missing': '#e63946',
+            'asset': '#f77f00'
+        };
+
+        const layerColumns = {
+            'external': 0.08,
+            'domain': 0.22,
+            'data': 0.36,
+            'hooks': 0.50,
+            'logic': 0.64,
+            'presentation': 0.78,
+            'asset': 0.92,
+            'missing': 0.92
+        };
+
+        const columnLabels = [
+            { name: 'Externo', x: 0.08 },
+            { name: 'Dominio', x: 0.22 },
+            { name: 'Infraestructura', x: 0.36 },
+            { name: 'Aplicación', x: 0.50 },
+            { name: 'Negocio', x: 0.64 },
+            { name: 'Presentación', x: 0.78 },
+            { name: 'Otros / Assets', x: 0.92 }
+        ];
+
+        // Estado de Radio de Impacto
+        let activeBlastSource = null;
+        let impactedNodesSet = new Set();
+
+        // Algoritmo BFS para hallar todos los nodos dependientes (radio de impacto de cambios)
+        function calcularRadioImpacto(nodeId, links) {
+            const impactados = new Set();
+            const cola = [nodeId];
+            
+            const mapaImportadores = {};
+            links.forEach(l => {
+                const sId = l.source?.id || l.source;
+                const tId = l.target?.id || l.target;
+                if (!mapaImportadores[tId]) {
+                    mapaImportadores[tId] = [];
+                }
+                mapaImportadores[tId].push(sId);
+            });
+
+            while (cola.length > 0) {
+                const actual = cola.shift();
+                const importadores = mapaImportadores[actual] || [];
+                for (const imp of importadores) {
+                    if (!impactados.has(imp) && imp !== nodeId) {
+                        impactados.add(imp);
+                        cola.push(imp);
+                    }
+                }
+            }
+
+            return impactados;
+        }
+
+        function iniciarBlastRadius(nodeId) {
+            activeBlastSource = nodeId;
+            impactedNodesSet = calcularRadioImpacto(nodeId, data.links);
+            render();
+        }
+
+        function limpiarBlastRadius() {
+            activeBlastSource = null;
+            impactedNodesSet.clear();
+            render();
+        }
+
         // Función para calcular el tamaño dinámico de un nodo basado en su importancia
         function obtenerRadioNodo(d) {
             if (d.type === 'external') return 6;
@@ -417,8 +997,8 @@ function obtenerHtmlWebview(grafo) {
             return Math.min(9 + count * 2.5, 25);
         }
 
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        let width = window.innerWidth;
+        let height = window.innerHeight;
 
         const svg = d3.select("#grafo")
             .attr("width", width)
@@ -445,10 +1025,30 @@ function obtenerHtmlWebview(grafo) {
         let activeNodes = [...data.nodes];
         let activeLinks = [...data.links];
 
+        function actualizarEncabezadosColumnas() {
+            const agrupar = d3.select("#toggle-cluster").property("checked");
+            const container = d3.select("#column-headers");
+            if (agrupar) {
+                container.style("display", "block").html("");
+                columnLabels.forEach(col => {
+                    container.append("div")
+                        .attr("class", "column-header")
+                        .style("left", (col.x * 100) + "%")
+                        .text(col.name);
+                });
+            } else {
+                container.style("display", "none");
+            }
+        }
+
         function render() {
             const showExternal = d3.select("#toggle-external").property("checked");
             const showMissing = d3.select("#toggle-missing").property("checked");
             const searchQuery = d3.select("#search-input").property("value").toLowerCase().trim();
+            const agrupar = d3.select("#toggle-cluster").property("checked");
+            const highlightCycles = d3.select("#toggle-cycles").property("checked");
+            const highlightDead = d3.select("#toggle-deadcode").property("checked");
+            const highlightGod = d3.select("#toggle-godfiles").property("checked");
 
             activeNodes = data.nodes.filter(n => {
                 if (n.type === 'external' && !showExternal) return false;
@@ -464,15 +1064,17 @@ function obtenerHtmlWebview(grafo) {
                 return activeNodeIds.has(sourceId) && activeNodeIds.has(targetId);
             });
 
+            // Sincronizar enlaces
             const linkSelection = link.data(activeLinks, d => (d.source?.id || d.source) + "-" + (d.target?.id || d.target));
             linkSelection.exit().remove();
-            const linkEnter = linkSelection.enter().append("line").attr("class", "enlace");
-            link = linkEnter.merge(linkSelection);
+            const linkEnter = linkSelection.enter().append("line");
+            link = linkEnter.merge(linkSelection)
+                .attr("class", d => "enlace" + (d.violation ? " violation" : "") + (d.inCycle ? " cycle" : ""));
 
+            // Sincronizar nodos
             const nodeSelection = node.data(activeNodes, d => d.id);
             nodeSelection.exit().remove();
             const nodeEnter = nodeSelection.enter().append("circle")
-                .attr("class", d => "nodo " + (d.type || "local"))
                 .attr("r", obtenerRadioNodo)
                 .call(d3.drag()
                     .on("start", dragstarted)
@@ -482,8 +1084,10 @@ function obtenerHtmlWebview(grafo) {
                 .on("mouseout", handleMouseOut)
                 .on("click", handleNodeClick)
                 .on("dblclick", handleDoubleClick);
-            node = nodeEnter.merge(nodeSelection);
+            node = nodeEnter.merge(nodeSelection)
+                .attr("class", d => "nodo " + (d.layer || d.type || "local"));
 
+            // Sincronizar etiquetas
             const labelSelection = label.data(activeNodes, d => d.id);
             labelSelection.exit().remove();
             const labelEnter = labelSelection.enter().append("text")
@@ -492,15 +1096,71 @@ function obtenerHtmlWebview(grafo) {
                 .text(d => d.name);
             label = labelEnter.merge(labelSelection);
 
-            if (searchQuery) {
-                node.style("opacity", n => n.name.toLowerCase().includes(searchQuery) ? 1 : 0.15);
-                label.style("opacity", n => n.name.toLowerCase().includes(searchQuery) ? 1 : 0.15)
-                     .style("fill", n => n.name.toLowerCase().includes(searchQuery) ? "#fff" : "#c9ada7");
+            if (activeBlastSource) {
+                node.style("opacity", n => n.id === activeBlastSource || impactedNodesSet.has(n.id) ? 1 : 0.08)
+                    .classed("impact-source", n => n.id === activeBlastSource)
+                    .classed("impacted", n => impactedNodesSet.has(n.id))
+                    .classed("cycle-highlight", false)
+                    .classed("dead-highlight", false)
+                    .classed("god-highlight", false);
+
+                label.style("opacity", n => n.id === activeBlastSource || impactedNodesSet.has(n.id) ? 1 : 0.08);
+
+                link.style("opacity", l => {
+                    const sId = l.source?.id || l.source;
+                    const tId = l.target?.id || l.target;
+                    const isImpactLink = (tId === activeBlastSource || impactedNodesSet.has(tId)) && impactedNodesSet.has(sId);
+                    return isImpactLink ? 0.95 : 0.02;
+                }).classed("impact-path", l => {
+                    const sId = l.source?.id || l.source;
+                    const tId = l.target?.id || l.target;
+                    return (tId === activeBlastSource || impactedNodesSet.has(tId)) && impactedNodesSet.has(sId);
+                }).classed("cycle", false);
+            } else if (highlightDead) {
+                node.classed("impact-source", false).classed("impacted", false)
+                    .classed("cycle-highlight", false)
+                    .classed("dead-highlight", n => esCodigoMuerto(n))
+                    .classed("god-highlight", false);
+                link.classed("impact-path", false).classed("cycle", false);
+
+                node.style("opacity", n => esCodigoMuerto(n) ? 1.0 : 0.1);
+                label.style("opacity", n => esCodigoMuerto(n) ? 1.0 : 0.1);
+                link.style("opacity", 0.02);
+            } else if (highlightGod) {
+                node.classed("impact-source", false).classed("impacted", false)
+                    .classed("cycle-highlight", false)
+                    .classed("dead-highlight", false)
+                    .classed("god-highlight", n => calcularMetricasGod(n).esGod);
+                link.classed("impact-path", false).classed("cycle", false);
+
+                node.style("opacity", n => calcularMetricasGod(n).esGod ? 1.0 : 0.15);
+                label.style("opacity", n => calcularMetricasGod(n).esGod ? 1.0 : 0.15);
                 link.style("opacity", 0.05);
             } else {
-                node.style("opacity", 1);
-                label.style("opacity", 1).style("fill", "#c9ada7");
-                link.style("opacity", 0.4);
+                node.classed("impact-source", false).classed("impacted", false).classed("dead-highlight", false).classed("god-highlight", false);
+                link.classed("impact-path", false);
+
+                if (highlightCycles) {
+                    node.style("opacity", n => n.inCycle ? 1 : 0.1)
+                        .classed("cycle-highlight", n => n.inCycle);
+                    label.style("opacity", n => n.inCycle ? 1 : 0.1);
+                    link.style("opacity", l => l.inCycle ? 0.95 : 0.05)
+                        .classed("cycle", l => l.inCycle);
+                } else {
+                    node.classed("cycle-highlight", false);
+                    link.classed("cycle", false);
+
+                    if (searchQuery) {
+                        node.style("opacity", n => n.name.toLowerCase().includes(searchQuery) ? 1 : 0.15);
+                        label.style("opacity", n => n.name.toLowerCase().includes(searchQuery) ? 1 : 0.15)
+                             .style("fill", n => n.name.toLowerCase().includes(searchQuery) ? "#fff" : "#c9ada7");
+                        link.style("opacity", 0.05);
+                    } else {
+                        node.style("opacity", 1);
+                        label.style("opacity", 1).style("fill", "#c9ada7");
+                        link.style("opacity", d => d.violation ? 0.85 : 0.4);
+                    }
+                }
             }
 
             // Si hay un nodo seleccionado, mantener su estado tras refrescos de filtros
@@ -511,7 +1171,28 @@ function obtenerHtmlWebview(grafo) {
                 } else {
                     deselectNode();
                 }
+            } else {
+                if (highlightDead) {
+                    mostrarReporteGeneralCodigoMuerto();
+                } else if (highlightGod) {
+                    mostrarReporteGeneralGodFiles();
+                } else {
+                    d3.select("#inspector").style("display", "none");
+                }
             }
+
+            // Aplicar o remover fuerzas de agrupamiento por columnas (Clustering)
+            if (agrupar) {
+                simulation.force("x", d3.forceX(d => width * (layerColumns[d.layer] || 0.78)).strength(0.8));
+                simulation.force("y", d3.forceY(height / 2).strength(0.2));
+                simulation.force("center", null);
+            } else {
+                simulation.force("x", null);
+                simulation.force("y", null);
+                simulation.force("center", d3.forceCenter(width / 2, height / 2));
+            }
+
+            actualizarEncabezadosColumnas();
 
             simulation.nodes(activeNodes);
             simulation.force("link").links(activeLinks);
@@ -537,6 +1218,10 @@ function obtenerHtmlWebview(grafo) {
 
         d3.select("#toggle-external").on("change", render);
         d3.select("#toggle-missing").on("change", render);
+        d3.select("#toggle-cluster").on("change", render);
+        d3.select("#toggle-cycles").on("change", render);
+        d3.select("#toggle-deadcode").on("change", render);
+        d3.select("#toggle-godfiles").on("change", render);
         d3.select("#search-input").on("input", render);
 
         d3.select("#charge-slider").on("input", function() {
@@ -553,6 +1238,13 @@ function obtenerHtmlWebview(grafo) {
             simulation.alpha(0.3).restart();
         });
 
+        window.addEventListener("resize", () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            svg.attr("width", width).attr("height", height);
+            render();
+        });
+
         render();
 
         function handleNodeClick(event, d) {
@@ -566,23 +1258,100 @@ function obtenerHtmlWebview(grafo) {
         }
 
         function highlightSelectedNode(d) {
+            const highlightDead = d3.select("#toggle-deadcode").property("checked");
+            const highlightGod = d3.select("#toggle-godfiles").property("checked");
+            const highlightCycles = d3.select("#toggle-cycles").property("checked");
+
             // Opacidades: resaltar este nodo y sus conexiones directas
-            node.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1 : 0.15);
-            label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1 : 0.15);
-            link.style("opacity", l => {
-                const sId = l.source?.id || l.source;
-                const tId = l.target?.id || l.target;
-                return sId === d.id || tId === d.id ? 1 : 0.05;
-            }).classed("highlighted", l => {
-                const sId = l.source?.id || l.source;
-                const tId = l.target?.id || l.target;
-                return sId === d.id || tId === d.id;
-            });
+            if (activeBlastSource) {
+                node.style("opacity", n => {
+                    const isBlastMember = n.id === activeBlastSource || impactedNodesSet.has(n.id);
+                    if (!isBlastMember) return 0.08;
+                    return n.id === d.id || esConectado(d.id, n.id) ? 1.0 : 0.3;
+                });
+                label.style("opacity", n => {
+                    const isBlastMember = n.id === activeBlastSource || impactedNodesSet.has(n.id);
+                    if (!isBlastMember) return 0.08;
+                    return n.id === d.id || esConectado(d.id, n.id) ? 1.0 : 0.3;
+                });
+                link.style("opacity", l => {
+                    const sId = l.source?.id || l.source;
+                    const tId = l.target?.id || l.target;
+                    const isImpactLink = (tId === activeBlastSource || impactedNodesSet.has(tId)) && impactedNodesSet.has(sId);
+                    if (!isImpactLink) return 0.02;
+                    return sId === d.id || tId === d.id ? 0.95 : 0.25;
+                });
+            } else if (highlightDead) {
+                node.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1.0 : 0.1)
+                    .classed("dead-highlight", n => esCodigoMuerto(n))
+                    .classed("cycle-highlight", false)
+                    .classed("impact-source", false)
+                    .classed("impacted", false)
+                    .classed("god-highlight", false);
+                label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1.0 : 0.1);
+                link.style("opacity", l => {
+                    const sId = l.source?.id || l.source;
+                    const tId = l.target?.id || l.target;
+                    return sId === d.id || tId === d.id ? 0.95 : 0.02;
+                }).classed("highlighted", l => {
+                    const sId = l.source?.id || l.source;
+                    const tId = l.target?.id || l.target;
+                    return sId === d.id || tId === d.id;
+                });
+            } else if (highlightGod) {
+                node.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1.0 : 0.15)
+                    .classed("dead-highlight", false)
+                    .classed("cycle-highlight", false)
+                    .classed("impact-source", false)
+                    .classed("impacted", false)
+                    .classed("god-highlight", n => calcularMetricasGod(n).esGod);
+                label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1.0 : 0.15);
+                link.style("opacity", l => {
+                    const sId = l.source?.id || l.source;
+                    const tId = l.target?.id || l.target;
+                    return sId === d.id || tId === d.id ? 0.95 : 0.05;
+                }).classed("highlighted", l => {
+                    const sId = l.source?.id || l.source;
+                    const tId = l.target?.id || l.target;
+                    return sId === d.id || tId === d.id;
+                });
+            } else if (highlightCycles) {
+                node.classed("dead-highlight", false).classed("god-highlight", false);
+                node.style("opacity", n => (n.id === d.id || esConectado(d.id, n.id)) && n.inCycle ? 1 : 0.1);
+                label.style("opacity", n => (n.id === d.id || esConectado(d.id, n.id)) && n.inCycle ? 1 : 0.1);
+                link.style("opacity", l => {
+                    const sId = l.source?.id || l.source;
+                    const tId = l.target?.id || l.target;
+                    return (sId === d.id || tId === d.id) && l.inCycle ? 0.95 : 0.05;
+                });
+            } else {
+                node.classed("dead-highlight", false).classed("god-highlight", false);
+                node.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1 : 0.15);
+                label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1 : 0.15);
+                
+                link.style("opacity", l => {
+                    const sId = l.source?.id || l.source;
+                    const tId = l.target?.id || l.target;
+                    return sId === d.id || tId === d.id ? 1 : 0.05;
+                }).classed("highlighted", l => {
+                    const sId = l.source?.id || l.source;
+                    const tId = l.target?.id || l.target;
+                    return sId === d.id || tId === d.id;
+                });
+            }
 
             // Mostrar y rellenar inspector
             d3.select("#inspector").style("display", "flex");
+            d3.select("#inspector-node-details").style("display", "block");
+            d3.select("#inspector-general-report").style("display", "none");
+
             d3.select("#ins-name").text(d.name);
             d3.select("#ins-path").text(d.id);
+
+            // Mostrar capa en el inspector
+            const colorCapa = capaColores[d.layer] || '#7b2cbf';
+            d3.select("#ins-layer")
+                .html("Capa: <span style='color: " + colorCapa + "; font-weight: 600;'>" + (capaEspanol[d.layer] || d.layer || 'Local') + "</span>");
 
             // Mostrar tamaño (solo si es local y existe)
             if (d.type === 'local' && d.size !== undefined) {
@@ -592,6 +1361,157 @@ function obtenerHtmlWebview(grafo) {
                 d3.select("#ins-size").text("Tamaño: " + sizeText).style("display", "block");
             } else {
                 d3.select("#ins-size").style("display", "none");
+            }
+
+            // Alerta de código muerto para el nodo seleccionado
+            const deadcodeContainer = d3.select("#inspector-deadcode");
+            if (esCodigoMuerto(d)) {
+                deadcodeContainer.style("display", "block").html(
+                    '<div class="deadcode-alert-title">⚠️ Código Muerto / Archivo Huérfano</div>' +
+                    '<div class="deadcode-alert-detail">' +
+                        'Este archivo local no tiene importaciones entrantes (in-degree 0) y no parece ser un punto de entrada de la aplicación.' +
+                    '</div>'
+                );
+            } else {
+                deadcodeContainer.style("display", "none");
+            }
+
+            // Alerta de God File para el nodo seleccionado
+            const godContainer = d3.select("#inspector-godfile");
+            if (d.type === 'local') {
+                const stats = calcularMetricasGod(d);
+                if (stats.esGod) {
+                    godContainer.style("display", "block").html(
+                        '<div class="godfile-alert-title">⚠️ God File Detectado (Score: ' + stats.score + ')</div>' +
+                        '<div class="godfile-alert-detail">' +
+                            'Este componente es altamente complejo (' + stats.complexity + ' LOC) y posee un acoplamiento elevado (' + stats.coupling + ' conexiones). ' +
+                            'Se sugiere dividirlo en componentes o hooks independientes para mejorar la cohesión y mantenibilidad.' +
+                        '</div>'
+                    );
+                } else {
+                    godContainer.style("display", "none");
+                }
+            } else {
+                godContainer.style("display", "none");
+            }
+
+            // Alertas de violación de arquitectura para el nodo seleccionado (como origen/importador)
+            const violations = activeLinks.filter(l => (l.source?.id || l.source) === d.id && l.violation);
+            const violationContainer = d3.select("#inspector-violation");
+            if (violations.length > 0) {
+                violationContainer.style("display", "block").html("");
+                violationContainer.append("div")
+                    .attr("class", "violation-alert-title")
+                    .html("⚠️ Infracción Arquitectónica");
+                
+                violations.forEach(v => {
+                    violationContainer.append("div")
+                        .attr("class", "violation-alert-detail")
+                        .text(v.violationDetails);
+                });
+            } else {
+                violationContainer.style("display", "none");
+            }
+
+            // Alertas de ciclos en los que participa el nodo
+            const cycleContainer = d3.select("#inspector-cycle");
+            if (d.inCycle && d.cycles && d.cycles.length > 0) {
+                cycleContainer.style("display", "block").html("");
+                cycleContainer.append("div")
+                    .attr("class", "cycle-alert-title")
+                    .html("⚠️ Dependencia Circular");
+                
+                d.cycles.forEach(c => {
+                    const pathDiv = cycleContainer.append("div")
+                        .attr("class", "cycle-alert-detail")
+                        .style("margin-top", "6px");
+                    
+                    c.path.forEach((nodeId, idx) => {
+                        if (idx > 0) {
+                            pathDiv.append("span").text(" ➔ ");
+                        }
+                        
+                        const name = nodeId.split('/').pop();
+                        pathDiv.append("span")
+                            .attr("class", "cycle-path-step")
+                            .text(name)
+                            .attr("title", nodeId)
+                            .on("click", (e) => {
+                                e.stopPropagation();
+                                const targetNode = data.nodes.find(n => n.id === nodeId);
+                                if (targetNode) {
+                                    handleNodeClick(e, targetNode);
+                                }
+                            });
+                    });
+                });
+            } else {
+                cycleContainer.style("display", "none");
+            }
+
+            // Configurar panel de análisis de impacto (Blast Radius)
+            const blastContainer = d3.select("#inspector-blast").style("display", "flex").html("");
+            
+            if (activeBlastSource === d.id) {
+                const count = impactedNodesSet.size;
+                const totalLocales = activeNodes.filter(n => n.type === 'local').length;
+                const pct = totalLocales > 0 ? Math.round((count / totalLocales) * 100) : 0;
+                
+                const metricBox = blastContainer.append("div").attr("class", "blast-metric-box");
+                metricBox.append("div").attr("class", "blast-metric-title").text("💥 Radio de Explosión");
+                metricBox.append("div").text(count + " de " + totalLocales + " componentes locales afectados (" + pct + "%)");
+                
+                if (count > 0) {
+                    const listTitle = metricBox.append("div")
+                        .style("font-weight", "600")
+                        .style("margin-top", "6px")
+                        .text("Archivos afectados:");
+                    
+                    const listDiv = metricBox.append("div")
+                        .style("max-height", "70px")
+                        .style("overflow-y", "auto")
+                        .style("display", "flex")
+                        .style("flex-direction", "column")
+                        .style("gap", "4px")
+                        .style("margin-top", "4px");
+                    
+                    impactedNodesSet.forEach(nodeId => {
+                        const name = nodeId.split('/').pop();
+                        listDiv.append("div")
+                            .attr("class", "inspector-item")
+                            .text(name)
+                            .attr("title", nodeId)
+                            .on("click", (e) => {
+                                e.stopPropagation();
+                                const targetNode = data.nodes.find(n => n.id === nodeId);
+                                if (targetNode) {
+                                    handleNodeClick(e, targetNode);
+                                }
+                            });
+                    });
+                }
+
+                blastContainer.append("button")
+                    .attr("class", "blast-btn reset")
+                    .text("Limpiar Análisis")
+                    .on("click", (e) => {
+                        e.stopPropagation();
+                        limpiarBlastRadius();
+                        highlightSelectedNode(d); // refrescar UI
+                    });
+            } else {
+                if (d.type === 'local') {
+                    blastContainer.append("button")
+                        .attr("class", "blast-btn")
+                        .text("Ver Radio de Impacto")
+                        .on("click", (e) => {
+                            e.stopPropagation();
+                            iniciarBlastRadius(d.id);
+                            highlightSelectedNode(d); // refrescar UI
+                        });
+                } else {
+                    blastContainer.style("display", "none");
+                }
             }
 
             // Dependencias (salientes)
@@ -641,16 +1561,66 @@ function obtenerHtmlWebview(grafo) {
 
         function deselectNode() {
             selectedNode = null;
-            d3.select("#inspector").style("display", "none");
-            node.style("opacity", 1);
-            label.style("opacity", 1).style("fill", "var(--vscode-descriptionForeground, #c9ada7)");
-            link.style("opacity", 0.4).classed("highlighted", false);
-
+            
+            const highlightDead = d3.select("#toggle-deadcode").property("checked");
+            const highlightGod = d3.select("#toggle-godfiles").property("checked");
+            const highlightCycles = d3.select("#toggle-cycles").property("checked");
             const searchQuery = d3.select("#search-input").property("value").toLowerCase().trim();
-            if (searchQuery) {
-                node.style("opacity", n => n.name.toLowerCase().includes(searchQuery) ? 1 : 0.15);
-                label.style("opacity", n => n.name.toLowerCase().includes(searchQuery) ? 1 : 0.15);
+
+            if (highlightDead) {
+                mostrarReporteGeneralCodigoMuerto();
+            } else if (highlightGod) {
+                mostrarReporteGeneralGodFiles();
+            } else {
+                d3.select("#inspector").style("display", "none");
+            }
+
+            if (activeBlastSource) {
+                node.style("opacity", n => n.id === activeBlastSource || impactedNodesSet.has(n.id) ? 1 : 0.08)
+                    .classed("impact-source", n => n.id === activeBlastSource)
+                    .classed("impacted", n => impactedNodesSet.has(n.id));
+                label.style("opacity", n => n.id === activeBlastSource || impactedNodesSet.has(n.id) ? 1 : 0.08);
+                link.style("opacity", l => {
+                    const sId = l.source?.id || l.source;
+                    const tId = l.target?.id || l.target;
+                    const isImpactLink = (tId === activeBlastSource || impactedNodesSet.has(tId)) && impactedNodesSet.has(sId);
+                    return isImpactLink ? 0.95 : 0.02;
+                });
+            } else if (highlightDead) {
+                node.classed("cycle-highlight", false).classed("impact-source", false).classed("impacted", false).classed("god-highlight", false);
+                link.classed("cycle", false).classed("impact-path", false);
+
+                node.style("opacity", n => esCodigoMuerto(n) ? 1.0 : 0.1)
+                    .classed("dead-highlight", n => esCodigoMuerto(n));
+                label.style("opacity", n => esCodigoMuerto(n) ? 1.0 : 0.1);
+                link.style("opacity", 0.02);
+            } else if (highlightGod) {
+                node.classed("cycle-highlight", false).classed("impact-source", false).classed("impacted", false).classed("dead-highlight", false);
+                link.classed("cycle", false).classed("impact-path", false);
+
+                node.style("opacity", n => calcularMetricasGod(n).esGod ? 1.0 : 0.15)
+                    .classed("god-highlight", n => calcularMetricasGod(n).esGod);
+                label.style("opacity", n => calcularMetricasGod(n).esGod ? 1.0 : 0.15);
                 link.style("opacity", 0.05);
+            } else if (highlightCycles) {
+                node.classed("dead-highlight", false).classed("god-highlight", false);
+                node.style("opacity", n => n.inCycle ? 1 : 0.1)
+                    .classed("cycle-highlight", n => n.inCycle);
+                label.style("opacity", n => n.inCycle ? 1 : 0.1);
+                link.style("opacity", l => l.inCycle ? 0.95 : 0.05)
+                    .classed("cycle", l => l.inCycle);
+            } else {
+                node.classed("cycle-highlight", false).classed("impact-source", false).classed("impacted", false).classed("dead-highlight", false).classed("god-highlight", false);
+                link.classed("cycle", false).classed("impact-path", false);
+                node.style("opacity", 1);
+                label.style("opacity", 1).style("fill", "var(--vscode-descriptionForeground, #c9ada7)");
+                link.style("opacity", d => d.violation ? 0.85 : 0.4).classed("highlighted", false);
+
+                if (searchQuery) {
+                    node.style("opacity", n => n.name.toLowerCase().includes(searchQuery) ? 1 : 0.15);
+                    label.style("opacity", n => n.name.toLowerCase().includes(searchQuery) ? 1 : 0.15);
+                    link.style("opacity", 0.05);
+                }
             }
         }
 
@@ -662,9 +1632,17 @@ function obtenerHtmlWebview(grafo) {
 
         function handleMouseOver(event, d) {
             if (selectedNode) return; // Ignorar hover si hay un nodo seleccionado
+            const highlightCycles = d3.select("#toggle-cycles").property("checked");
+            if (highlightCycles && !d.inCycle) return; // Ignorar hover de nodos no cíclicos si resaltamos ciclos
+            if (activeBlastSource && d.id !== activeBlastSource && !impactedNodesSet.has(d.id)) return; // Ignorar hover si no es del radio de impacto
+
             const rBase = obtenerRadioNodo(d);
             d3.select(this).attr("r", rBase + 4);
-            link.classed("highlighted", l => l.source?.id === d.id || l.target?.id === d.id);
+            link.classed("highlighted", l => {
+                const sId = l.source?.id || l.source;
+                const tId = l.target?.id || l.target;
+                return sId === d.id || tId === d.id;
+            });
             
             const connectedNodeIds = new Set();
             connectedNodeIds.add(d.id);

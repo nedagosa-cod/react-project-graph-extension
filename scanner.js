@@ -54,19 +54,87 @@ function obtenerGrafo(rutaProyecto) {
         }
     }
 
+    function clasificarCapa(idArchivo) {
+        const pathLower = idArchivo.toLowerCase();
+        
+        // 1. Dominio (Tipos/Modelos/Interfaces)
+        if (
+            pathLower.includes('/types/') || pathLower.includes('/models/') || 
+            pathLower.includes('/interfaces/') || pathLower.includes('/domain/') ||
+            pathLower.endsWith('/types') || pathLower.endsWith('/models') || 
+            pathLower.endsWith('/interfaces') || pathLower.endsWith('/domain')
+        ) {
+            return 'domain';
+        }
+        
+        // 2. Infraestructura (Datos/API/Utils/Services/Repositories)
+        if (
+            pathLower.includes('/services/') || pathLower.includes('/api/') || 
+            pathLower.includes('/utils/') || pathLower.includes('/infra/') ||
+            pathLower.includes('/repositories/') || pathLower.includes('/data/') ||
+            pathLower.endsWith('/services') || pathLower.endsWith('/api') || 
+            pathLower.endsWith('/utils') || pathLower.endsWith('/infra') ||
+            pathLower.endsWith('/repositories') || pathLower.endsWith('/data')
+        ) {
+            return 'data';
+        }
+        
+        // 3. Aplicación (Custom Hooks)
+        const baseName = path.basename(idArchivo).toLowerCase();
+        if (
+            pathLower.includes('/hooks/') || pathLower.endsWith('/hooks') || 
+            baseName.startsWith('use')
+        ) {
+            return 'hooks';
+        }
+        
+        // 4. Negocio (Estado/Contexto/Store/Redux/Slices)
+        if (
+            pathLower.includes('/context/') || pathLower.includes('/store/') || 
+            pathLower.includes('/redux/') || pathLower.includes('/slices/') ||
+            pathLower.includes('/state/') || pathLower.includes('/logic/') ||
+            pathLower.endsWith('/context') || pathLower.endsWith('/store') || 
+            pathLower.endsWith('/redux') || pathLower.endsWith('/slices') ||
+            pathLower.endsWith('/state') || pathLower.endsWith('/logic')
+        ) {
+            return 'logic';
+        }
+        
+        // 5. Presentación (UI/Componentes/Vistas/Páginas)
+        return 'presentation';
+    }
+
     function procesarArchivo(rutaArchivo, tamañoArchivo) {
         const rutaRelativa = path.relative(rutaProyecto, rutaArchivo);
         const idArchivo = rutaRelativa.replace(/\\/g, '/');
+        const ext = path.extname(rutaArchivo).toLowerCase();
+        const capa = clasificarCapa(idArchivo);
 
-        grafo.nodes.push({ id: idArchivo, name: path.basename(rutaArchivo), type: 'local', size: tamañoArchivo });
+        let lineas = 0;
+        let codigo = '';
+        try {
+            codigo = fs.readFileSync(rutaArchivo, 'utf8');
+            lineas = codigo.split('\n').length;
+        } catch (error) {
+            console.log(`⚠️ No se pudo leer el archivo ${idArchivo}: ${error.message}`);
+        }
+
+        grafo.nodes.push({ 
+            id: idArchivo, 
+            name: path.basename(rutaArchivo), 
+            type: 'local', 
+            size: tamañoArchivo,
+            ext: ext,
+            lines: lineas,
+            layer: capa
+        });
 
         try {
-            const codigo = fs.readFileSync(rutaArchivo, 'utf8');
-            
-            // Limpiamos comentarios para no detectar importaciones comentadas
-            const codigoLimpio = codigo
-                .replace(/\/\*[\s\S]*?\*\//g, '')
-                .replace(/\/\/.*/g, '');
+            if (codigo) {
+                // Limpiamos comentarios para no detectar importaciones comentadas
+                const codigoLimpio = codigo
+                    .replace(/\/\*[\s\S]*?\*\//g, '')
+                    .replace(/\/\/.*/g, '');
 
             const importsEncontrados = [];
 
@@ -106,6 +174,7 @@ function obtenerGrafo(rutaProyecto) {
                     }
                 }
             }
+            }
         } catch (error) {
             console.log(`⚠️ No se pudo analizar el archivo ${idArchivo}: ${error.message}`);
         }
@@ -113,22 +182,151 @@ function obtenerGrafo(rutaProyecto) {
 
     escanearCarpeta(srcDir);
 
-    // POST-PROCESAMIENTO PARA EVITAR ERRORES D3 Y AGREGAR NODOS EXTERNOS/FALTANTES
+    // POST-PROCESAMIENTO PARA EVITAR ERRORES D3 Y AGREGAR NODOS EXTERNOS/FALTANTES/ASSETS
     const nodosExistentes = new Set(grafo.nodes.map(n => n.id));
 
     grafo.links.forEach(link => {
         if (!nodosExistentes.has(link.target)) {
-            // Si no empieza con 'src/', es un módulo externo (npm)
-            const esExterno = !link.target.startsWith('src/');
-            const tipo = esExterno ? 'external' : 'missing';
+            const ext = path.extname(link.target).toLowerCase();
+            const esExterno = !link.target.startsWith('src/') && !link.target.startsWith('./src/');
+            
+            let tipo = 'missing';
+            if (esExterno) {
+                tipo = 'external';
+            } else if (['.css', '.scss', '.sass', '.less', '.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.json', '.html'].includes(ext)) {
+                tipo = 'asset';
+            }
 
             grafo.nodes.push({
                 id: link.target,
                 name: path.basename(link.target),
-                type: tipo
+                type: tipo,
+                ext: ext,
+                layer: tipo
             });
             nodosExistentes.add(link.target);
         }
+    });
+
+    // AUDITORÍA DE ENLACES PARA ARQUITECTURA LIMPIA
+    const mapaNodos = {};
+    grafo.nodes.forEach(n => {
+        mapaNodos[n.id] = n;
+    });
+
+    const jerarquiaCapas = {
+        'domain': 1,
+        'data': 2,
+        'hooks': 3,
+        'logic': 4,
+        'presentation': 5
+    };
+
+    grafo.links.forEach(link => {
+        const nodoSource = mapaNodos[link.source];
+        const nodoTarget = mapaNodos[link.target];
+
+        if (nodoSource && nodoTarget) {
+            const capaSource = nodoSource.layer;
+            const capaTarget = nodoTarget.layer;
+
+            if (jerarquiaCapas[capaSource] && jerarquiaCapas[capaTarget]) {
+                const rangoSource = jerarquiaCapas[capaSource];
+                const rangoTarget = jerarquiaCapas[capaTarget];
+
+                if (rangoTarget > rangoSource) {
+                    link.violation = true;
+                    link.violationDetails = `Infracción: '${nodoSource.name}' (${capaSource}) importa '${nodoTarget.name}' (${capaTarget})`;
+                }
+            }
+        }
+    });
+
+    // DETECCIÓN DE DEPENDENCIAS CIRCULARES (DFS)
+    const adj = {};
+    grafo.nodes.forEach(n => {
+        adj[n.id] = [];
+    });
+    grafo.links.forEach(l => {
+        const s = l.source;
+        const t = l.target;
+        if (adj[s]) {
+            adj[s].push(t);
+        }
+    });
+
+    const visitados = {};
+    const pilaRecursion = [];
+    const ciclosEncontrados = [];
+
+    function buscarCiclos(nodeId) {
+        visitados[nodeId] = 'visitando';
+        pilaRecursion.push(nodeId);
+
+        const vecinos = adj[nodeId] || [];
+        for (const vecino of vecinos) {
+            if (visitados[vecino] === 'visitando') {
+                const index = pilaRecursion.indexOf(vecino);
+                if (index !== -1) {
+                    const rutaCiclo = pilaRecursion.slice(index);
+                    rutaCiclo.push(vecino);
+                    
+                    const claveCiclo = rutaCiclo.join(' -> ');
+                    const yaExiste = ciclosEncontrados.some(c => c.join(' -> ') === claveCiclo);
+                    if (!yaExiste) {
+                        ciclosEncontrados.push(rutaCiclo);
+                    }
+                }
+            } else if (!visitados[vecino]) {
+                buscarCiclos(vecino);
+            }
+        }
+
+        pilaRecursion.pop();
+        visitados[nodeId] = 'visitado';
+    }
+
+    Object.keys(adj).forEach(nodeId => {
+        if (!visitados[nodeId]) {
+            buscarCiclos(nodeId);
+        }
+    });
+
+    grafo.cycles = ciclosEncontrados;
+
+    grafo.nodes.forEach(n => {
+        n.inCycle = false;
+        n.cycles = [];
+    });
+
+    ciclosEncontrados.forEach((ciclo, idxCiclo) => {
+        for (let i = 0; i < ciclo.length - 1; i++) {
+            const nodeId = ciclo[i];
+            const nodo = mapaNodos[nodeId];
+            if (nodo) {
+                nodo.inCycle = true;
+                nodo.cycles.push({
+                    index: idxCiclo,
+                    path: ciclo
+                });
+            }
+        }
+    });
+
+    grafo.links.forEach(link => {
+        link.inCycle = false;
+        link.cycles = [];
+
+        ciclosEncontrados.forEach((ciclo, idxCiclo) => {
+            for (let i = 0; i < ciclo.length - 1; i++) {
+                const s = ciclo[i];
+                const t = ciclo[i + 1];
+                if (link.source === s && link.target === t) {
+                    link.inCycle = true;
+                    link.cycles.push(idxCiclo);
+                }
+            }
+        });
     });
 
     return grafo;

@@ -319,6 +319,26 @@ function obtenerHtmlWebview(grafo) {
         const vscode = acquireVsCodeApi();
         const data = ${JSON.stringify(grafo)};
 
+        // Calcular el in-degree (número de enlaces/importaciones que apuntan a cada nodo)
+        const inDegree = {};
+        data.nodes.forEach(n => inDegree[n.id] = 0);
+        data.links.forEach(l => {
+            const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+            if (inDegree[targetId] !== undefined) {
+                inDegree[targetId]++;
+            }
+        });
+
+        // Función para calcular el tamaño dinámico de un nodo basado en su importancia
+        function obtenerRadioNodo(d) {
+            if (d.type === 'external') return 6;
+            if (d.type === 'missing') return 7;
+            
+            // Radio base de 9px, crece según el número de importaciones entrantes (máximo 25px)
+            const count = inDegree[d.id] || 0;
+            return Math.min(9 + count * 2.5, 25);
+        }
+
         const width = window.innerWidth;
         const height = window.innerHeight;
 
@@ -338,7 +358,7 @@ function obtenerHtmlWebview(grafo) {
             .force("link", d3.forceLink(data.links).id(d => d.id).distance(140))
             .force("charge", d3.forceManyBody().strength(-400))
             .force("center", d3.forceCenter(width / 2, height / 2))
-            .force("collision", d3.forceCollide().radius(40));
+            .force("collision", d3.forceCollide().radius(d => obtenerRadioNodo(d) + 15));
 
         let link = g.append("g").attr("class", "enlaces").selectAll("line");
         let node = g.append("g").attr("class", "nodos").selectAll("circle");
@@ -375,7 +395,7 @@ function obtenerHtmlWebview(grafo) {
             nodeSelection.exit().remove();
             const nodeEnter = nodeSelection.enter().append("circle")
                 .attr("class", d => "nodo " + (d.type || "local"))
-                .attr("r", d => d.type === 'external' ? 7 : d.type === 'missing' ? 8 : 10)
+                .attr("r", obtenerRadioNodo)
                 .call(d3.drag()
                     .on("start", dragstarted)
                     .on("drag", dragged)
@@ -389,7 +409,7 @@ function obtenerHtmlWebview(grafo) {
             labelSelection.exit().remove();
             const labelEnter = labelSelection.enter().append("text")
                 .attr("class", "etiqueta")
-                .attr("dy", -15)
+                .attr("dy", d => - (obtenerRadioNodo(d) + 5))
                 .text(d => d.name);
             label = labelEnter.merge(labelSelection);
 
@@ -406,6 +426,7 @@ function obtenerHtmlWebview(grafo) {
 
             simulation.nodes(activeNodes);
             simulation.force("link").links(activeLinks);
+            simulation.force("collision").radius(d => obtenerRadioNodo(d) + 15);
             simulation.alpha(0.5).restart();
         }
 
@@ -446,7 +467,8 @@ function obtenerHtmlWebview(grafo) {
         render();
 
         function handleMouseOver(event, d) {
-            d3.select(this).attr("r", d.type === 'external' ? 10 : d.type === 'missing' ? 11 : 14);
+            const rBase = obtenerRadioNodo(d);
+            d3.select(this).attr("r", rBase + 4);
             link.classed("highlighted", l => l.source.id === d.id || l.target.id === d.id);
             
             const connectedNodeIds = new Set();
@@ -461,7 +483,7 @@ function obtenerHtmlWebview(grafo) {
         }
 
         function handleMouseOut(event, d) {
-            d3.select(this).attr("r", d.type === 'external' ? 7 : d.type === 'missing' ? 8 : 10);
+            d3.select(this).attr("r", obtenerRadioNodo(d));
             link.classed("highlighted", false);
             label.classed("highlighted", false);
         }

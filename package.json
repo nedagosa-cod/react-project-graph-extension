@@ -16,7 +16,7 @@
     "commands": [
       {
         "command": "antigravity-obsidian-react.showGraph",
-        "title": "Mostrar Grafo de Dependencias",
+        "title": "Grafo📍",
         "category": "Obsidian React"
       }
     ],

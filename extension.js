@@ -1,6 +1,7 @@
 // extension.js
 const vscode = require('vscode');
 const { obtenerGrafo } = require('./scanner.js');
+const path = require('path');
 
 function activate(context) {
     console.log('¡La extensión "Obsidian React Graph" está activa!');
@@ -40,6 +41,22 @@ function activate(context) {
                 );
 
                 panel.webview.html = obtenerHtmlWebview(grafo);
+
+                // Escuchamos mensajes del webview para abrir archivos
+                panel.webview.onDidReceiveMessage(message => {
+                    if (message.command === 'abrirArchivo') {
+                        const rutaCompleta = path.join(rutaProyecto, message.ruta);
+                        vscode.workspace.openTextDocument(rutaCompleta).then(
+                            doc => {
+                                vscode.window.showTextDocument(doc);
+                            },
+                            err => {
+                                vscode.window.showErrorMessage('No se pudo abrir el archivo: ' + err.message);
+                            }
+                        );
+                    }
+                });
+
             } catch (error) {
                 vscode.window.showErrorMessage('Error al generar el grafo: ' + error.message);
             }
@@ -180,6 +197,7 @@ function obtenerHtmlWebview(grafo) {
     </div>
 
     <script>
+        const vscode = acquireVsCodeApi(); // Adquirimos la API de VS Code en el Webview
         const data = ${JSON.stringify(grafo)};
 
         const width = window.innerWidth;
@@ -222,7 +240,8 @@ function obtenerHtmlWebview(grafo) {
                 .on("drag", dragged)
                 .on("end", dragended))
             .on("mouseover", handleMouseOver)
-            .on("mouseout", handleMouseOut);
+            .on("mouseout", handleMouseOut)
+            .on("dblclick", handleDoubleClick); // Escucha de doble clic
 
         const label = g.append("g")
             .attr("class", "etiquetas")
@@ -268,6 +287,16 @@ function obtenerHtmlWebview(grafo) {
             label.classed("highlighted", false);
         }
 
+        // Manejador de doble clic para abrir archivo
+        function handleDoubleClick(event, d) {
+            if (d.type === 'local') {
+                vscode.postMessage({
+                    command: 'abrirArchivo',
+                    ruta: d.id
+                });
+            }
+        }
+
         function dragstarted(event, d) {
             if (!event.active) simulation.alphaTarget(0.3).restart();
             d.fx = d.x;
@@ -279,6 +308,7 @@ function obtenerHtmlWebview(grafo) {
             d.fy = event.y;
         }
 
+        // Se agregó la llave final que cierra obtenerHtmlWebview
         function dragended(event, d) {
             if (!event.active) simulation.alphaTarget(0);
             d.fx = null;

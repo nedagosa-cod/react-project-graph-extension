@@ -394,11 +394,14 @@ function obtenerHtmlWebview(grafo) {
         const vscode = acquireVsCodeApi();
         const data = ${JSON.stringify(grafo)};
 
+        // Declaramos selectedNode AL INICIO para evitar el error de inicialización TDZ en render()
+        let selectedNode = null;
+
         // Calcular el in-degree (número de enlaces/importaciones que apuntan a cada nodo)
         const inDegree = {};
         data.nodes.forEach(n => inDegree[n.id] = 0);
         data.links.forEach(l => {
-            const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+            const targetId = l.target?.id || l.target;
             if (inDegree[targetId] !== undefined) {
                 inDegree[targetId]++;
             }
@@ -456,12 +459,12 @@ function obtenerHtmlWebview(grafo) {
             const activeNodeIds = new Set(activeNodes.map(n => n.id));
 
             activeLinks = data.links.filter(l => {
-                const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
-                const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+                const sourceId = l.source?.id || l.source;
+                const targetId = l.target?.id || l.target;
                 return activeNodeIds.has(sourceId) && activeNodeIds.has(targetId);
             });
 
-            const linkSelection = link.data(activeLinks, d => (d.source.id || d.source) + "-" + (d.target.id || d.target));
+            const linkSelection = link.data(activeLinks, d => (d.source?.id || d.source) + "-" + (d.target?.id || d.target));
             linkSelection.exit().remove();
             const linkEnter = linkSelection.enter().append("line").attr("class", "enlace");
             link = linkEnter.merge(linkSelection);
@@ -552,8 +555,6 @@ function obtenerHtmlWebview(grafo) {
 
         render();
 
-        let selectedNode = null;
-
         function handleNodeClick(event, d) {
             event.stopPropagation();
             if (selectedNode === d) {
@@ -569,12 +570,12 @@ function obtenerHtmlWebview(grafo) {
             node.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1 : 0.15);
             label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1 : 0.15);
             link.style("opacity", l => {
-                const sId = l.source.id || l.source;
-                const tId = l.target.id || l.target;
+                const sId = l.source?.id || l.source;
+                const tId = l.target?.id || l.target;
                 return sId === d.id || tId === d.id ? 1 : 0.05;
             }).classed("highlighted", l => {
-                const sId = l.source.id || l.source;
-                const tId = l.target.id || l.target;
+                const sId = l.source?.id || l.source;
+                const tId = l.target?.id || l.target;
                 return sId === d.id || tId === d.id;
             });
 
@@ -594,11 +595,11 @@ function obtenerHtmlWebview(grafo) {
             }
 
             // Dependencias (salientes)
-            const outgoing = activeLinks.filter(l => (l.source.id || l.source) === d.id);
+            const outgoing = activeLinks.filter(l => (l.source?.id || l.source) === d.id);
             d3.select("#ins-out-count").text(outgoing.length);
             const outList = d3.select("#ins-out-list").html("");
             outgoing.forEach(l => {
-                const targetNode = activeNodes.find(n => n.id === (l.target.id || l.target));
+                const targetNode = activeNodes.find(n => n.id === (l.target?.id || l.target));
                 if (targetNode) {
                     outList.append("div")
                         .attr("class", "inspector-item")
@@ -612,11 +613,11 @@ function obtenerHtmlWebview(grafo) {
             });
 
             // Dependientes (entrantes)
-            const incoming = activeLinks.filter(l => (l.target.id || l.target) === d.id);
+            const incoming = activeLinks.filter(l => (l.target?.id || l.target) === d.id);
             d3.select("#ins-in-count").text(incoming.length);
             const inList = d3.select("#ins-in-list").html("");
             incoming.forEach(l => {
-                const sourceNode = activeNodes.find(n => n.id === (l.source.id || l.source));
+                const sourceNode = activeNodes.find(n => n.id === (l.source?.id || l.source));
                 if (sourceNode) {
                     inList.append("div")
                         .attr("class", "inspector-item")
@@ -632,8 +633,8 @@ function obtenerHtmlWebview(grafo) {
 
         function esConectado(id1, id2) {
             return activeLinks.some(l => {
-                const sId = l.source.id || l.source;
-                const tId = l.target.id || l.target;
+                const sId = l.source?.id || l.source;
+                const tId = l.target?.id || l.target;
                 return (sId === id1 && tId === id2) || (sId === id2 && tId === id1);
             });
         }
@@ -663,13 +664,13 @@ function obtenerHtmlWebview(grafo) {
             if (selectedNode) return; // Ignorar hover si hay un nodo seleccionado
             const rBase = obtenerRadioNodo(d);
             d3.select(this).attr("r", rBase + 4);
-            link.classed("highlighted", l => l.source.id === d.id || l.target.id === d.id);
+            link.classed("highlighted", l => l.source?.id === d.id || l.target?.id === d.id);
             
             const connectedNodeIds = new Set();
             connectedNodeIds.add(d.id);
             activeLinks.forEach(l => {
-                const sourceId = l.source.id || l.source;
-                const targetId = l.target.id || l.target;
+                const sourceId = l.source?.id || l.source;
+                const targetId = l.target?.id || l.target;
                 if (sourceId === d.id) connectedNodeIds.add(targetId);
                 if (targetId === d.id) connectedNodeIds.add(sourceId);
             });

@@ -174,6 +174,92 @@ function obtenerHtmlWebview(grafo) {
         .color-box.local { background-color: #7b2cbf; border: 1px solid #1e1e1e; }
         .color-box.external { background-color: #00b4d8; border: 1px solid #1e1e1e; }
         .color-box.missing { background-color: #e63946; border: 1px dashed #ffb703; }
+
+        /* Panel de Controles Flotante */
+        #controls {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: rgba(25, 25, 25, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 18px;
+            font-size: 13px;
+            width: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            pointer-events: auto;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .control-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .control-label {
+            font-weight: 700;
+            color: #fff;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            opacity: 0.8;
+        }
+        #search-input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        #search-input:focus {
+            border-color: #7b2cbf;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #ccc;
+            font-size: 12px;
+        }
+        .checkbox-group input {
+            cursor: pointer;
+            accent-color: #7b2cbf;
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .slider-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .slider-val-label {
+            color: #ccc;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .slider-item input {
+            width: 100%;
+            accent-color: #7b2cbf;
+            cursor: pointer;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -184,11 +270,11 @@ function obtenerHtmlWebview(grafo) {
         <div class="legend-title">Grafo de Dependencias</div>
         <div class="legend-item">
             <span class="color-box local"></span>
-            <span>Archivos Locales (.js, .jsx)</span>
+            <span>Archivos Locales (.js, .jsx, .ts, .tsx)</span>
         </div>
         <div class="legend-item">
             <span class="color-box external"></span>
-            <span>Módulos Externos (npm / react)</span>
+            <span>Módulos Externos (npm)</span>
         </div>
         <div class="legend-item">
             <span class="color-box missing"></span>
@@ -196,8 +282,41 @@ function obtenerHtmlWebview(grafo) {
         </div>
     </div>
 
+    <div id="controls">
+        <div class="control-section">
+            <label for="search-input" class="control-label">Buscar Archivo</label>
+            <input type="text" id="search-input" placeholder="Buscar por nombre..." autocomplete="off" />
+        </div>
+        <div class="control-section">
+            <span class="control-label">Filtros</span>
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="toggle-external" checked> Mostrar Módulos Externos</label>
+                <label><input type="checkbox" id="toggle-missing" checked> Mostrar Faltantes</label>
+            </div>
+        </div>
+        <div class="control-section">
+            <span class="control-label">Fuerzas del Grafo</span>
+            <div class="slider-group">
+                <div class="slider-item">
+                    <div class="slider-val-label">
+                        <span>Repulsión:</span>
+                        <span id="charge-val">-400</span>
+                    </div>
+                    <input type="range" id="charge-slider" min="-1000" max="-100" value="-400" step="50" />
+                </div>
+                <div class="slider-item">
+                    <div class="slider-val-label">
+                        <span>Distancia:</span>
+                        <span><span id="distance-val">140</span>px</span>
+                    </div>
+                    <input type="range" id="distance-slider" min="50" max="300" value="140" step="10" />
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const vscode = acquireVsCodeApi(); // Adquirimos la API de VS Code en el Webview
+        const vscode = acquireVsCodeApi();
         const data = ${JSON.stringify(grafo)};
 
         const width = window.innerWidth;
@@ -221,36 +340,74 @@ function obtenerHtmlWebview(grafo) {
             .force("center", d3.forceCenter(width / 2, height / 2))
             .force("collision", d3.forceCollide().radius(40));
 
-        const link = g.append("g")
-            .attr("class", "enlaces")
-            .selectAll("line")
-            .data(data.links)
-            .enter().append("line")
-            .attr("class", "enlace");
+        let link = g.append("g").attr("class", "enlaces").selectAll("line");
+        let node = g.append("g").attr("class", "nodos").selectAll("circle");
+        let label = g.append("g").attr("class", "etiquetas").selectAll("text");
 
-        const node = g.append("g")
-            .attr("class", "nodos")
-            .selectAll("circle")
-            .data(data.nodes)
-            .enter().append("circle")
-            .attr("class", d => "nodo " + (d.type || "local"))
-            .attr("r", d => d.type === 'external' ? 7 : d.type === 'missing' ? 8 : 10)
-            .call(d3.drag()
-                .on("start", dragstarted)
-                .on("drag", dragged)
-                .on("end", dragended))
-            .on("mouseover", handleMouseOver)
-            .on("mouseout", handleMouseOut)
-            .on("dblclick", handleDoubleClick); // Escucha de doble clic
+        let activeNodes = [...data.nodes];
+        let activeLinks = [...data.links];
 
-        const label = g.append("g")
-            .attr("class", "etiquetas")
-            .selectAll("text")
-            .data(data.nodes)
-            .enter().append("text")
-            .attr("class", "etiqueta")
-            .attr("dy", -15)
-            .text(d => d.name);
+        function render() {
+            const showExternal = d3.select("#toggle-external").property("checked");
+            const showMissing = d3.select("#toggle-missing").property("checked");
+            const searchQuery = d3.select("#search-input").property("value").toLowerCase().trim();
+
+            activeNodes = data.nodes.filter(n => {
+                if (n.type === 'external' && !showExternal) return false;
+                if (n.type === 'missing' && !showMissing) return false;
+                return true;
+            });
+
+            const activeNodeIds = new Set(activeNodes.map(n => n.id));
+
+            activeLinks = data.links.filter(l => {
+                const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+                return activeNodeIds.has(sourceId) && activeNodeIds.has(targetId);
+            });
+
+            const linkSelection = link.data(activeLinks, d => (d.source.id || d.source) + "-" + (d.target.id || d.target));
+            linkSelection.exit().remove();
+            const linkEnter = linkSelection.enter().append("line").attr("class", "enlace");
+            link = linkEnter.merge(linkSelection);
+
+            const nodeSelection = node.data(activeNodes, d => d.id);
+            nodeSelection.exit().remove();
+            const nodeEnter = nodeSelection.enter().append("circle")
+                .attr("class", d => "nodo " + (d.type || "local"))
+                .attr("r", d => d.type === 'external' ? 7 : d.type === 'missing' ? 8 : 10)
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended))
+                .on("mouseover", handleMouseOver)
+                .on("mouseout", handleMouseOut)
+                .on("dblclick", handleDoubleClick);
+            node = nodeEnter.merge(nodeSelection);
+
+            const labelSelection = label.data(activeNodes, d => d.id);
+            labelSelection.exit().remove();
+            const labelEnter = labelSelection.enter().append("text")
+                .attr("class", "etiqueta")
+                .attr("dy", -15)
+                .text(d => d.name);
+            label = labelEnter.merge(labelSelection);
+
+            if (searchQuery) {
+                node.style("opacity", n => n.name.toLowerCase().includes(searchQuery) ? 1 : 0.15);
+                label.style("opacity", n => n.name.toLowerCase().includes(searchQuery) ? 1 : 0.15)
+                     .style("fill", n => n.name.toLowerCase().includes(searchQuery) ? "#fff" : "#c9ada7");
+                link.style("opacity", 0.05);
+            } else {
+                node.style("opacity", 1);
+                label.style("opacity", 1).style("fill", "#c9ada7");
+                link.style("opacity", 0.4);
+            }
+
+            simulation.nodes(activeNodes);
+            simulation.force("link").links(activeLinks);
+            simulation.alpha(0.5).restart();
+        }
 
         simulation.on("tick", () => {
             link
@@ -268,15 +425,37 @@ function obtenerHtmlWebview(grafo) {
                 .attr("y", d => d.y);
         });
 
+        d3.select("#toggle-external").on("change", render);
+        d3.select("#toggle-missing").on("change", render);
+        d3.select("#search-input").on("input", render);
+
+        d3.select("#charge-slider").on("input", function() {
+            const val = +this.value;
+            d3.select("#charge-val").text(val);
+            simulation.force("charge").strength(val);
+            simulation.alpha(0.3).restart();
+        });
+
+        d3.select("#distance-slider").on("input", function() {
+            const val = +this.value;
+            d3.select("#distance-val").text(val);
+            simulation.force("link").distance(val);
+            simulation.alpha(0.3).restart();
+        });
+
+        render();
+
         function handleMouseOver(event, d) {
             d3.select(this).attr("r", d.type === 'external' ? 10 : d.type === 'missing' ? 11 : 14);
             link.classed("highlighted", l => l.source.id === d.id || l.target.id === d.id);
             
             const connectedNodeIds = new Set();
             connectedNodeIds.add(d.id);
-            data.links.forEach(l => {
-                if (l.source.id === d.id) connectedNodeIds.add(l.target.id);
-                if (l.target.id === d.id) connectedNodeIds.add(l.source.id);
+            activeLinks.forEach(l => {
+                const sourceId = l.source.id || l.source;
+                const targetId = l.target.id || l.target;
+                if (sourceId === d.id) connectedNodeIds.add(targetId);
+                if (targetId === d.id) connectedNodeIds.add(sourceId);
             });
             label.classed("highlighted", n => connectedNodeIds.has(n.id));
         }
@@ -287,7 +466,6 @@ function obtenerHtmlWebview(grafo) {
             label.classed("highlighted", false);
         }
 
-        // Manejador de doble clic para abrir archivo
         function handleDoubleClick(event, d) {
             if (d.type === 'local') {
                 vscode.postMessage({
@@ -308,7 +486,6 @@ function obtenerHtmlWebview(grafo) {
             d.fy = event.y;
         }
 
-        // Se agregó la llave final que cierra obtenerHtmlWebview
         function dragended(event, d) {
             if (!event.active) simulation.alphaTarget(0);
             d.fx = null;

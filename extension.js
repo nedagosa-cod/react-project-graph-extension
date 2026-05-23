@@ -258,6 +258,67 @@ function obtenerHtmlWebview(grafo) {
             cursor: pointer;
             margin: 0;
         }
+
+        /* Inspector de Nodo */
+        #inspector {
+            border-top: 1px solid var(--vscode-sideBar-border, rgba(255, 255, 255, 0.1));
+            padding-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .inspector-filename {
+            font-weight: 600;
+            color: var(--vscode-textLink-activeForeground, #ffb703);
+            font-size: 13px;
+            word-break: break-all;
+        }
+        .inspector-path {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground, #888);
+            word-break: break-all;
+            margin-bottom: 4px;
+        }
+        .inspector-detail {
+            font-size: 11px;
+            color: var(--vscode-sideBar-foreground, #ccc);
+            margin-bottom: 4px;
+        }
+        .inspector-subtitle {
+            font-weight: 600;
+            font-size: 10px;
+            color: var(--vscode-sideBarTitle-foreground, #fff);
+            margin-top: 6px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+        }
+        .inspector-list {
+            max-height: 80px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding-right: 4px;
+        }
+        .inspector-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .inspector-list::-webkit-scrollbar-thumb {
+            background: var(--vscode-sideBar-border, rgba(255, 255, 255, 0.2));
+            border-radius: 2px;
+        }
+        .inspector-item {
+            font-size: 11px;
+            color: var(--vscode-textLink-foreground, #3794ff);
+            cursor: pointer;
+            word-break: break-all;
+            text-decoration: underline;
+        }
+        .inspector-item:hover {
+            color: var(--vscode-textLink-activeForeground, #ffb703);
+        }
     </style>
 </head>
 <body>
@@ -309,6 +370,22 @@ function obtenerHtmlWebview(grafo) {
                     </div>
                     <input type="range" id="distance-slider" min="50" max="300" value="140" step="10" />
                 </div>
+            </div>
+        </div>
+
+        <!-- Inspector de Nodo (oculto por defecto) -->
+        <div id="inspector" style="display: none;">
+            <span class="control-label">Inspector de Nodo</span>
+            <div id="inspector-content" style="width: 100%;">
+                <div class="inspector-filename" id="ins-name"></div>
+                <div class="inspector-path" id="ins-path"></div>
+                <div class="inspector-detail" id="ins-size"></div>
+                
+                <div class="inspector-subtitle">Dependencias (<span id="ins-out-count">0</span>)</div>
+                <div class="inspector-list" id="ins-out-list"></div>
+                
+                <div class="inspector-subtitle">Dependientes (<span id="ins-in-count">0</span>)</div>
+                <div class="inspector-list" id="ins-in-list"></div>
             </div>
         </div>
     </div>
@@ -400,6 +477,7 @@ function obtenerHtmlWebview(grafo) {
                     .on("end", dragended))
                 .on("mouseover", handleMouseOver)
                 .on("mouseout", handleMouseOut)
+                .on("click", handleNodeClick)
                 .on("dblclick", handleDoubleClick);
             node = nodeEnter.merge(nodeSelection);
 
@@ -420,6 +498,16 @@ function obtenerHtmlWebview(grafo) {
                 node.style("opacity", 1);
                 label.style("opacity", 1).style("fill", "#c9ada7");
                 link.style("opacity", 0.4);
+            }
+
+            // Si hay un nodo seleccionado, mantener su estado tras refrescos de filtros
+            if (selectedNode) {
+                const nodeStillActive = activeNodeIds.has(selectedNode.id);
+                if (nodeStillActive) {
+                    highlightSelectedNode(selectedNode);
+                } else {
+                    deselectNode();
+                }
             }
 
             simulation.nodes(activeNodes);
@@ -464,7 +552,115 @@ function obtenerHtmlWebview(grafo) {
 
         render();
 
+        let selectedNode = null;
+
+        function handleNodeClick(event, d) {
+            event.stopPropagation();
+            if (selectedNode === d) {
+                deselectNode();
+                return;
+            }
+            selectedNode = d;
+            highlightSelectedNode(d);
+        }
+
+        function highlightSelectedNode(d) {
+            // Opacidades: resaltar este nodo y sus conexiones directas
+            node.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1 : 0.15);
+            label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1 : 0.15);
+            link.style("opacity", l => {
+                const sId = l.source.id || l.source;
+                const tId = l.target.id || l.target;
+                return sId === d.id || tId === d.id ? 1 : 0.05;
+            }).classed("highlighted", l => {
+                const sId = l.source.id || l.source;
+                const tId = l.target.id || l.target;
+                return sId === d.id || tId === d.id;
+            });
+
+            // Mostrar y rellenar inspector
+            d3.select("#inspector").style("display", "flex");
+            d3.select("#ins-name").text(d.name);
+            d3.select("#ins-path").text(d.id);
+
+            // Mostrar tamaño (solo si es local y existe)
+            if (d.type === 'local' && d.size !== undefined) {
+                const sizeText = d.size > 1024 
+                    ? (d.size / 1024).toFixed(1) + ' KB' 
+                    : d.size + ' B';
+                d3.select("#ins-size").text("Tamaño: " + sizeText).style("display", "block");
+            } else {
+                d3.select("#ins-size").style("display", "none");
+            }
+
+            // Dependencias (salientes)
+            const outgoing = activeLinks.filter(l => (l.source.id || l.source) === d.id);
+            d3.select("#ins-out-count").text(outgoing.length);
+            const outList = d3.select("#ins-out-list").html("");
+            outgoing.forEach(l => {
+                const targetNode = activeNodes.find(n => n.id === (l.target.id || l.target));
+                if (targetNode) {
+                    outList.append("div")
+                        .attr("class", "inspector-item")
+                        .text(targetNode.name)
+                        .on("click", (e) => {
+                            e.stopPropagation();
+                            const n = data.nodes.find(node => node.id === targetNode.id);
+                            if (n) handleNodeClick(e, n);
+                        });
+                }
+            });
+
+            // Dependientes (entrantes)
+            const incoming = activeLinks.filter(l => (l.target.id || l.target) === d.id);
+            d3.select("#ins-in-count").text(incoming.length);
+            const inList = d3.select("#ins-in-list").html("");
+            incoming.forEach(l => {
+                const sourceNode = activeNodes.find(n => n.id === (l.source.id || l.source));
+                if (sourceNode) {
+                    inList.append("div")
+                        .attr("class", "inspector-item")
+                        .text(sourceNode.name)
+                        .on("click", (e) => {
+                            e.stopPropagation();
+                            const n = data.nodes.find(node => node.id === sourceNode.id);
+                            if (n) handleNodeClick(e, n);
+                        });
+                }
+            });
+        }
+
+        function esConectado(id1, id2) {
+            return activeLinks.some(l => {
+                const sId = l.source.id || l.source;
+                const tId = l.target.id || l.target;
+                return (sId === id1 && tId === id2) || (sId === id2 && tId === id1);
+            });
+        }
+
+        function deselectNode() {
+            selectedNode = null;
+            d3.select("#inspector").style("display", "none");
+            node.style("opacity", 1);
+            label.style("opacity", 1).style("fill", "var(--vscode-descriptionForeground, #c9ada7)");
+            link.style("opacity", 0.4).classed("highlighted", false);
+
+            const searchQuery = d3.select("#search-input").property("value").toLowerCase().trim();
+            if (searchQuery) {
+                node.style("opacity", n => n.name.toLowerCase().includes(searchQuery) ? 1 : 0.15);
+                label.style("opacity", n => n.name.toLowerCase().includes(searchQuery) ? 1 : 0.15);
+                link.style("opacity", 0.05);
+            }
+        }
+
+        svg.on("click", (event) => {
+            if (event.target.tagName === 'svg') {
+                deselectNode();
+            }
+        });
+
         function handleMouseOver(event, d) {
+            if (selectedNode) return; // Ignorar hover si hay un nodo seleccionado
             const rBase = obtenerRadioNodo(d);
             d3.select(this).attr("r", rBase + 4);
             link.classed("highlighted", l => l.source.id === d.id || l.target.id === d.id);
@@ -481,6 +677,7 @@ function obtenerHtmlWebview(grafo) {
         }
 
         function handleMouseOut(event, d) {
+            if (selectedNode) return; // Ignorar hover si hay un nodo seleccionado
             d3.select(this).attr("r", obtenerRadioNodo(d));
             link.classed("highlighted", false);
             label.classed("highlighted", false);

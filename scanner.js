@@ -49,16 +49,16 @@ function obtenerGrafo(rutaProyecto) {
                 archivo.endsWith('.ts') || 
                 archivo.endsWith('.tsx')
             ) {
-                procesarArchivo(rutaCompleta);
+                procesarArchivo(rutaCompleta, stats.size);
             }
         }
     }
 
-    function procesarArchivo(rutaArchivo) {
+    function procesarArchivo(rutaArchivo, tamañoArchivo) {
         const rutaRelativa = path.relative(rutaProyecto, rutaArchivo);
         const idArchivo = rutaRelativa.replace(/\\/g, '/');
 
-        grafo.nodes.push({ id: idArchivo, name: path.basename(rutaArchivo), type: 'local' });
+        grafo.nodes.push({ id: idArchivo, name: path.basename(rutaArchivo), type: 'local', size: tamañoArchivo });
 
         try {
             const codigo = fs.readFileSync(rutaArchivo, 'utf8');

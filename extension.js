@@ -81,9 +81,10 @@ function obtenerHtmlWebview(grafo) {
     <style>
         body {
             margin: 0;
-            background-color: #121212;
-            color: #e0e0e0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--vscode-editor-background, #121212);
+            color: var(--vscode-editor-foreground, #e0e0e0);
+            font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+            font-size: var(--vscode-font-size, 13px);
             overflow: hidden;
             user-select: none;
         }
@@ -92,7 +93,7 @@ function obtenerHtmlWebview(grafo) {
             height: 100vh;
         }
         .nodo {
-            stroke: #1e1e1e;
+            stroke: var(--vscode-editor-background, #121212);
             stroke-width: 1.5px;
             cursor: grab;
             transition: fill 0.2s, r 0.2s, stroke-width 0.2s;
@@ -108,23 +109,23 @@ function obtenerHtmlWebview(grafo) {
             stroke-dasharray: 3, 3;
         }
         .nodo:hover {
-            stroke: #fff;
+            stroke: var(--vscode-editor-foreground, #fff);
             stroke-width: 2.5px;
             filter: brightness(1.2);
         }
         .enlace {
-            stroke: #4a4a4a;
+            stroke: var(--vscode-editorLineNumber-foreground, #4a4a4a);
             stroke-opacity: 0.4;
             stroke-width: 1.5px;
             transition: stroke-opacity 0.2s, stroke-width 0.2s;
         }
         .enlace.highlighted {
-            stroke: #ffb703;
+            stroke: var(--vscode-textLink-activeForeground, #ffb703);
             stroke-opacity: 1;
             stroke-width: 2.5px;
         }
         .etiqueta {
-            fill: #c9ada7;
+            fill: var(--vscode-descriptionForeground, #c9ada7);
             font-size: 11px;
             pointer-events: none;
             text-anchor: middle;
@@ -132,7 +133,7 @@ function obtenerHtmlWebview(grafo) {
             transition: fill 0.2s, font-size 0.2s;
         }
         .etiqueta.highlighted {
-            fill: #fff;
+            fill: var(--vscode-editor-foreground, #fff);
             font-size: 13px;
             text-shadow: 0 0 4px rgba(0,0,0,0.8);
         }
@@ -140,10 +141,8 @@ function obtenerHtmlWebview(grafo) {
             position: absolute;
             bottom: 24px;
             left: 24px;
-            background: rgba(25, 25, 25, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--vscode-sideBar-background, rgba(25, 25, 25, 0.85));
+            border: 1px solid var(--vscode-sideBar-border, rgba(255, 255, 255, 0.1));
             border-radius: 12px;
             padding: 16px;
             font-size: 13px;
@@ -156,13 +155,14 @@ function obtenerHtmlWebview(grafo) {
         .legend-title {
             font-weight: 600;
             margin-bottom: 4px;
-            color: #fff;
+            color: var(--vscode-sideBarTitle-foreground, #fff);
             font-size: 14px;
         }
         .legend-item {
             display: flex;
             align-items: center;
             gap: 10px;
+            color: var(--vscode-sideBar-foreground, #ccc);
         }
         .color-box {
             width: 12px;
@@ -171,8 +171,8 @@ function obtenerHtmlWebview(grafo) {
             display: inline-block;
             box-shadow: 0 0 4px rgba(0,0,0,0.5);
         }
-        .color-box.local { background-color: #7b2cbf; border: 1px solid #1e1e1e; }
-        .color-box.external { background-color: #00b4d8; border: 1px solid #1e1e1e; }
+        .color-box.local { background-color: #7b2cbf; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
+        .color-box.external { background-color: #00b4d8; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
         .color-box.missing { background-color: #e63946; border: 1px dashed #ffb703; }
 
         /* Panel de Controles Flotante */
@@ -180,10 +180,8 @@ function obtenerHtmlWebview(grafo) {
             position: absolute;
             top: 24px;
             right: 24px;
-            background: rgba(25, 25, 25, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--vscode-sideBar-background, rgba(25, 25, 25, 0.85));
+            border: 1px solid var(--vscode-sideBar-border, rgba(255, 255, 255, 0.1));
             border-radius: 12px;
             padding: 18px;
             font-size: 13px;
@@ -201,25 +199,25 @@ function obtenerHtmlWebview(grafo) {
         }
         .control-label {
             font-weight: 700;
-            color: #fff;
+            color: var(--vscode-sideBarTitle-foreground, #fff);
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.8px;
             opacity: 0.8;
         }
         #search-input {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: var(--vscode-input-background, rgba(0, 0, 0, 0.3));
+            border: 1px solid var(--vscode-input-border, rgba(255, 255, 255, 0.15));
             border-radius: 6px;
             padding: 8px 12px;
-            color: #fff;
+            color: var(--vscode-input-foreground, #fff);
             font-family: inherit;
             font-size: 12px;
             outline: none;
             transition: border-color 0.2s;
         }
         #search-input:focus {
-            border-color: #7b2cbf;
+            border-color: var(--vscode-focusBorder, #7b2cbf);
         }
         .checkbox-group {
             display: flex;
@@ -231,12 +229,12 @@ function obtenerHtmlWebview(grafo) {
             align-items: center;
             gap: 8px;
             cursor: pointer;
-            color: #ccc;
+            color: var(--vscode-sideBar-foreground, #ccc);
             font-size: 12px;
         }
         .checkbox-group input {
             cursor: pointer;
-            accent-color: #7b2cbf;
+            accent-color: var(--vscode-button-background, #7b2cbf);
         }
         .slider-group {
             display: flex;
@@ -249,14 +247,14 @@ function obtenerHtmlWebview(grafo) {
             gap: 4px;
         }
         .slider-val-label {
-            color: #ccc;
+            color: var(--vscode-sideBar-foreground, #ccc);
             font-size: 12px;
             display: flex;
             justify-content: space-between;
         }
         .slider-item input {
             width: 100%;
-            accent-color: #7b2cbf;
+            accent-color: var(--vscode-button-background, #7b2cbf);
             cursor: pointer;
             margin: 0;
         }

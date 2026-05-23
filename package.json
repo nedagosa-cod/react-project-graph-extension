@@ -25,13 +25,12 @@
         {
           "command": "antigravity-obsidian-react.showGraph",
           "group": "navigation",
-          "when": "resourceExtname == .js || resourceExtname == .jsx"
+          "when": "resourceExtname == .js || resourceExtname == .jsx || resourceExtname == .ts || resourceExtname == .tsx"
         }
       ]
     }
   },
   "scripts": {
-    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -44,10 +43,7 @@
       "onFail": "download"
     }
   },
-  "dependencies": {
-    "acorn": "^8.16.0",
-    "acorn-walk": "^8.3.5"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/vscode": "^1.74.0"
   }

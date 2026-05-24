@@ -3,7 +3,8 @@
   "displayName": "React Project Graph",
   "description": "Visualiza el grafo de dependencias de tu proyecto React de manera interactiva y premium.",
   "version": "1.0.0",
-  "publisher": "antigravity",
+  "publisher": "nedagosa",
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -34,7 +35,11 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "nedagosa",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nedagosa-cod/react-project-graph-extension.git"
+  },
   "license": "ISC",
   "devEngines": {
     "packageManager": {

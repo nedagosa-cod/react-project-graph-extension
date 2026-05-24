@@ -228,6 +228,44 @@ function obtenerGrafo(rutaProyecto) {
                     }
                 }
             }
+
+            // Detección de Funciones Inseguras y Smells de Inyección (XSS / Código Dinámico)
+            if (/\bdangerouslySetInnerHTML\b/.test(codigo)) {
+                securityAlerts.push({
+                    type: 'unsafe_smell',
+                    message: `Uso de 'dangerouslySetInnerHTML' detectado (Riesgo potencial de Cross-Site Scripting - XSS si el contenido no se sanitiza).`
+                });
+            }
+
+            if (/\beval\s*\(/.test(codigo)) {
+                securityAlerts.push({
+                    type: 'unsafe_smell',
+                    message: `Uso de 'eval()' detectado (Ejecución de código arbitrario altamente insegura).`
+                });
+            }
+
+            if (/\bnew\s+Function\s*\(/.test(codigo)) {
+                securityAlerts.push({
+                    type: 'unsafe_smell',
+                    message: `Constructor 'new Function()' detectado (Ejecución de código dinámica e insegura).`
+                });
+            }
+
+            if (/\bdocument\.write(?:ln)?\s*\(/.test(codigo)) {
+                securityAlerts.push({
+                    type: 'unsafe_smell',
+                    message: `Uso de 'document.write()' detectado (Práctica obsoleta e insegura de inyección DOM).`
+                });
+            }
+
+            const timerRegex = /\b(setTimeout|setInterval)\s*\(\s*["'`]/g;
+            let timerMatch;
+            while ((timerMatch = timerRegex.exec(codigo)) !== null) {
+                securityAlerts.push({
+                    type: 'unsafe_smell',
+                    message: `Llamada a '${timerMatch[1]}' con un string literal (Funciona como eval e incrementa riesgos de inyección).`
+                });
+            }
         }
 
         grafo.nodes.push({ 

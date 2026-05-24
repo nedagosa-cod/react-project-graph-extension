@@ -116,3 +116,21 @@ Introduce un análisis estático síncrono de alto rendimiento para alertar de i
     *   **Doble click**: Abre físicamente el archivo en el editor de VS Code.
     *   **Scroll del mouse / Pellizcar**: Zoom in, zoom out y desplazamiento libre (pan).
     *   **Deslizadores de Fuerza**: Controla la repulsión y la distancia de los enlaces dinámicamente según la densidad del proyecto.
+
+---
+
+## 🤝 Contribuciones (Open Source)
+
+¡Las contribuciones son bienvenidas! Este es un proyecto de código abierto y nos encantaría recibir tus Pull Requests para añadir nuevas reglas de arquitectura, visualizaciones o soporte para otros frameworks.
+
+Por favor, lee nuestra **[Guía de Contribución](CONTRIBUTING.md)** para aprender a configurar tu entorno local y enviar tus cambios de forma ordenada.
+
+---
+
+## 📄 Licencia
+
+Este proyecto está bajo la **Licencia MIT**. Siéntete libre de usarlo, modificarlo y distribuirlo bajo los términos descritos en el archivo **[LICENSE](LICENSE)**.
+
+---
+
+Creado con 💻 y ☕ por [Néstor (nedagosa-cod)](https://github.com/nedagosa-cod).

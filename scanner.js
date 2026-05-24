@@ -140,6 +140,7 @@ function obtenerGrafo(rutaProyecto) {
         }
 
         let exportName = null;
+        let routeInfo = null;
         const securityAlerts = [];
         if (codigo) {
             // 1. Buscar 'export default [async] function Nombre'
@@ -266,6 +267,44 @@ function obtenerGrafo(rutaProyecto) {
                     message: `Llamada a '${timerMatch[1]}' con un string literal (Funciona como eval e incrementa riesgos de inyección).`
                 });
             }
+
+            // Mapeo de Superficie de Ataque de Next.js (page.tsx y route.ts)
+            const lowerName = path.basename(rutaArchivo).toLowerCase();
+            const isPage = lowerName.startsWith('page.');
+            const isRoute = lowerName.startsWith('route.');
+            
+            if (isPage || isRoute) {
+                const routeType = isPage ? 'page' : 'api';
+                const idLower = idArchivo.toLowerCase();
+                
+                // Buscar si tiene chequeos de autenticación directos
+                const authPattern = /\b(auth|session|user|login|getServerSession|useSession|authenticate|requireAuth|currentUser|jwt|token)\b/i;
+                const hasDirectAuth = authPattern.test(codigo);
+                
+                // Determinar si es una ruta pública conocida
+                const publicPaths = ['/login/', '/public/', '/register/', '/signup/', '/recovery/', 'forgot-password'];
+                const isPublicPath = publicPaths.some(p => idLower.includes(p));
+                
+                let status = 'exposed';
+                if (isPublicPath) {
+                    status = 'public';
+                } else if (hasDirectAuth) {
+                    status = 'protected';
+                }
+                
+                routeInfo = {
+                    isRoute: true,
+                    routeType,
+                    status
+                };
+                
+                if (status === 'exposed') {
+                    securityAlerts.push({
+                        type: 'route_exposure',
+                        message: `Superficie de Ataque: Ruta expuesta sin chequeo de autenticación en este archivo. Asegúrate de protegerla en middleware.ts.`
+                    });
+                }
+            }
         }
 
         grafo.nodes.push({ 
@@ -278,6 +317,7 @@ function obtenerGrafo(rutaProyecto) {
             exportName: exportName || null,
             securityAlerts: securityAlerts.length > 0 ? securityAlerts : null,
             hasSecurity: securityAlerts.length > 0,
+            routeInfo: routeInfo || null,
             layer: capa
         });
 

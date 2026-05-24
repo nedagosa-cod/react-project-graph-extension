@@ -651,6 +651,20 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
             margin-top: 4px;
             line-height: 1.35;
         }
+        
+        /* Estilos de Rutas Expuestas Next.js */
+        .nodo.exposed-route {
+            stroke: #ff9f1c !important;
+            stroke-width: 3px !important;
+            stroke-dasharray: 4, 3;
+            filter: drop-shadow(0 0 6px #ff9f1c);
+            animation: exposed-pulse 2s infinite ease-in-out;
+        }
+        @keyframes exposed-pulse {
+            0% { filter: drop-shadow(0 0 3px #ff9f1c); }
+            50% { filter: drop-shadow(0 0 9px #ff9f1c); }
+            100% { filter: drop-shadow(0 0 3px #ff9f1c); }
+        }
     </style>
 </head>
 <body>
@@ -1078,7 +1092,98 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     .style("font-size", "11px")
                     .style("color", "#2ec4b6")
                     .style("font-weight", "600")
-                    .text("🎉 ¡Excelente! No se detectaron riesgos de seguridad.");
+                    .text("🎉 ¡Excelente! No se detectaron vulnerabilidades críticas de seguridad.");
+            }
+
+            // AGREGAR MAPA DE SUPERFICIE DE ATAQUE (Next.js Routes)
+            reportContainer.append("div")
+                .style("margin-top", "20px")
+                .style("margin-bottom", "6px")
+                .style("font-weight", "700")
+                .style("color", "#ff9f1c")
+                .style("font-size", "12px")
+                .text("🌐 Superficie de Ataque (Next.js)");
+
+            const routeNodes = activeNodes.filter(n => n.routeInfo && n.routeInfo.isRoute);
+
+            if (routeNodes.length > 0) {
+                reportContainer.append("div")
+                    .style("font-size", "11px")
+                    .style("color", "var(--vscode-sideBar-foreground, #ccc)")
+                    .style("margin-bottom", "8px")
+                    .text("Se detectaron " + routeNodes.length + " rutas y endpoints locales.");
+
+                const routeList = reportContainer.append("div")
+                    .style("max-height", "220px")
+                    .style("overflow-y", "auto")
+                    .style("display", "flex")
+                    .style("flex-direction", "column")
+                    .style("gap", "6px");
+
+                routeNodes.forEach(n => {
+                    const info = n.routeInfo;
+                    let bgColor = "rgba(255, 159, 28, 0.08)";
+                    let borderColor = "rgba(255, 159, 28, 0.3)";
+                    let statusLabel = "⚠️ Verificar en Middleware";
+                    let labelColor = "#ff9f1c";
+                    
+                    if (info.status === 'protected') {
+                        bgColor = "rgba(46, 196, 182, 0.08)";
+                        borderColor = "rgba(46, 196, 182, 0.3)";
+                        statusLabel = "🛡️ Protegido Directamente";
+                        labelColor = "#2ec4b6";
+                    } else if (info.status === 'public') {
+                        bgColor = "rgba(58, 134, 248, 0.08)";
+                        borderColor = "rgba(58, 134, 248, 0.3)";
+                        statusLabel = "🌐 Público Conocido";
+                        labelColor = "#3a86f8";
+                    }
+
+                    const routeItem = routeList.append("div")
+                        .style("display", "flex")
+                        .style("flex-direction", "column")
+                        .style("padding", "6px")
+                        .style("background", bgColor)
+                        .style("border", "1px solid " + borderColor)
+                        .style("border-radius", "4px")
+                        .style("cursor", "pointer")
+                        .style("transition", "background 0.2s")
+                        .on("mouseover", function() { d3.select(this).style("background", bgColor.replace("0.08", "0.15")); })
+                        .on("mouseout", function() { d3.select(this).style("background", bgColor); })
+                        .on("click", (e) => {
+                            e.stopPropagation();
+                            handleNodeClick(e, n);
+                        });
+
+                    const itemHeader = routeItem.append("div")
+                        .style("display", "flex")
+                        .style("justify-content", "space-between")
+                        .style("align-items", "center");
+
+                    itemHeader.append("span")
+                        .style("font-weight", "600")
+                        .style("color", "#fff")
+                        .style("font-size", "11px")
+                        .text(n.name + " (" + (info.routeType === 'page' ? 'Página' : 'API Route') + ")");
+
+                    itemHeader.append("span")
+                        .style("font-weight", "700")
+                        .style("font-size", "9px")
+                        .style("color", labelColor)
+                        .text(statusLabel);
+
+                    routeItem.append("span")
+                        .style("font-size", "9px")
+                        .style("color", "var(--vscode-descriptionForeground, #888)")
+                        .style("margin-top", "2px")
+                        .style("word-break", "break-all")
+                        .text(n.id);
+                });
+            } else {
+                reportContainer.append("div")
+                    .style("font-size", "11px")
+                    .style("color", "var(--vscode-descriptionForeground, #888)")
+                    .text("No se encontraron páginas ni endpoints de API en este proyecto.");
             }
         }
 
@@ -1314,7 +1419,8 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     .classed("cycle-highlight", false)
                     .classed("dead-highlight", n => esCodigoMuerto(n))
                     .classed("god-highlight", false)
-                    .classed("security-highlight", false);
+                    .classed("security-highlight", false)
+                    .classed("exposed-route", false);
                 link.classed("impact-path", false).classed("cycle", false);
 
                 node.style("opacity", n => esCodigoMuerto(n) ? 1.0 : 0.1);
@@ -1325,7 +1431,8 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     .classed("cycle-highlight", false)
                     .classed("dead-highlight", false)
                     .classed("god-highlight", n => calcularMetricasGod(n).esGod)
-                    .classed("security-highlight", false);
+                    .classed("security-highlight", false)
+                    .classed("exposed-route", false);
                 link.classed("impact-path", false).classed("cycle", false);
 
                 node.style("opacity", n => calcularMetricasGod(n).esGod ? 1.0 : 0.15);
@@ -1336,14 +1443,15 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     .classed("cycle-highlight", false)
                     .classed("dead-highlight", false)
                     .classed("god-highlight", false)
-                    .classed("security-highlight", n => n.hasSecurity);
+                    .classed("security-highlight", n => n.hasSecurity && (!n.routeInfo || n.routeInfo.status !== 'exposed'))
+                    .classed("exposed-route", n => n.routeInfo && n.routeInfo.status === 'exposed');
                 link.classed("impact-path", false).classed("cycle", false);
 
                 node.style("opacity", n => n.hasSecurity ? 1.0 : 0.1);
                 label.style("opacity", n => n.hasSecurity ? 1.0 : 0.1);
                 link.style("opacity", 0.02);
             } else {
-                node.classed("impact-source", false).classed("impacted", false).classed("dead-highlight", false).classed("god-highlight", false).classed("security-highlight", false);
+                node.classed("impact-source", false).classed("impacted", false).classed("dead-highlight", false).classed("god-highlight", false).classed("security-highlight", false).classed("exposed-route", false);
                 link.classed("impact-path", false);
 
                 if (highlightCycles) {
@@ -1557,7 +1665,8 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     .classed("impact-source", false)
                     .classed("impacted", false)
                     .classed("god-highlight", false)
-                    .classed("security-highlight", false);
+                    .classed("security-highlight", false)
+                    .classed("exposed-route", false);
                 label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1.0 : 0.1);
                 link.style("opacity", l => {
                     const sId = l.source?.id || l.source;
@@ -1575,7 +1684,8 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     .classed("impact-source", false)
                     .classed("impacted", false)
                     .classed("god-highlight", n => calcularMetricasGod(n).esGod)
-                    .classed("security-highlight", false);
+                    .classed("security-highlight", false)
+                    .classed("exposed-route", false);
                 label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1.0 : 0.15);
                 link.style("opacity", l => {
                     const sId = l.source?.id || l.source;
@@ -1593,7 +1703,8 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     .classed("impact-source", false)
                     .classed("impacted", false)
                     .classed("god-highlight", false)
-                    .classed("security-highlight", n => n.hasSecurity);
+                    .classed("security-highlight", n => n.hasSecurity && (!n.routeInfo || n.routeInfo.status !== 'exposed'))
+                    .classed("exposed-route", n => n.routeInfo && n.routeInfo.status === 'exposed');
                 label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1.0 : 0.1);
                 link.style("opacity", l => {
                     const sId = l.source?.id || l.source;
@@ -1605,7 +1716,7 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     return sId === d.id || tId === d.id;
                 });
             } else if (highlightCycles) {
-                node.classed("dead-highlight", false).classed("god-highlight", false).classed("security-highlight", false);
+                node.classed("dead-highlight", false).classed("god-highlight", false).classed("security-highlight", false).classed("exposed-route", false);
                 node.style("opacity", n => (n.id === d.id || esConectado(d.id, n.id)) && n.inCycle ? 1 : 0.1);
                 label.style("opacity", n => (n.id === d.id || esConectado(d.id, n.id)) && n.inCycle ? 1 : 0.1);
                 link.style("opacity", l => {
@@ -1614,7 +1725,7 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     return (sId === d.id || tId === d.id) && l.inCycle ? 0.95 : 0.05;
                 });
             } else {
-                node.classed("dead-highlight", false).classed("god-highlight", false).classed("security-highlight", false);
+                node.classed("dead-highlight", false).classed("god-highlight", false).classed("security-highlight", false).classed("exposed-route", false);
                 node.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1 : 0.15);
                 label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1 : 0.15);
                 

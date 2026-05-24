@@ -1185,6 +1185,82 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     .style("color", "var(--vscode-descriptionForeground, #888)")
                     .text("No se encontraron páginas ni endpoints de API en este proyecto.");
             }
+
+            // AGREGAR AUDITORÍA DE DEPENDENCIAS (package.json)
+            reportContainer.append("div")
+                .style("margin-top", "20px")
+                .style("margin-bottom", "6px")
+                .style("font-weight", "700")
+                .style("color", "#ff3c38")
+                .style("font-size", "12px")
+                .text("📦 Auditoría de Dependencias (package.json)");
+
+            const vulnerabilities = data.npmVulnerabilities || [];
+
+            if (vulnerabilities.length > 0) {
+                reportContainer.append("div")
+                    .style("font-size", "11px")
+                    .style("color", "var(--vscode-sideBar-foreground, #ccc)")
+                    .style("margin-bottom", "8px")
+                    .text("Se detectaron " + vulnerabilities.length + " dependencias críticas con riesgos:");
+
+                const depList = reportContainer.append("div")
+                    .style("max-height", "200px")
+                    .style("overflow-y", "auto")
+                    .style("display", "flex")
+                    .style("flex-direction", "column")
+                    .style("gap", "6px");
+
+                vulnerabilities.forEach(v => {
+                    const depItem = depList.append("div")
+                        .style("display", "flex")
+                        .style("flex-direction", "column")
+                        .style("padding", "6px")
+                        .style("background", "rgba(255, 60, 56, 0.08)")
+                        .style("border", "1px solid rgba(255, 60, 56, 0.3)")
+                        .style("border-radius", "4px")
+                        .style("cursor", "pointer")
+                        .style("transition", "background 0.2s")
+                        .on("mouseover", function() { d3.select(this).style("background", "rgba(255, 60, 56, 0.15)"); })
+                        .on("mouseout", function() { d3.select(this).style("background", "rgba(255, 60, 56, 0.08)"); })
+                        .on("click", (e) => {
+                            e.stopPropagation();
+                            const targetNode = data.nodes.find(n => n.id === v.package);
+                            if (targetNode) {
+                                handleNodeClick(e, targetNode);
+                            }
+                        });
+
+                    const itemHeader = depItem.append("div")
+                        .style("display", "flex")
+                        .style("justify-content", "space-between")
+                        .style("align-items", "center");
+
+                    itemHeader.append("span")
+                        .style("font-weight", "600")
+                        .style("color", "#ff4d4d")
+                        .style("font-size", "11px")
+                        .text(v.package);
+
+                    itemHeader.append("span")
+                        .style("font-weight", "700")
+                        .style("font-size", "10px")
+                        .style("color", "#ff4d4d")
+                        .text(v.declared);
+
+                    depItem.append("span")
+                        .style("font-size", "10px")
+                        .style("color", "var(--vscode-sideBar-foreground, #ccc)")
+                        .style("margin-top", "2px")
+                        .text(v.risk);
+                });
+            } else {
+                reportContainer.append("div")
+                    .style("font-size", "11px")
+                    .style("color", "#2ec4b6")
+                    .style("font-weight", "600")
+                    .text("🎉 ¡Excelente! Todas las dependencias en package.json están seguras.");
+            }
         }
 
         // Configuración de visualización de Capas

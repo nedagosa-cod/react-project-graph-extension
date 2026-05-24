@@ -2,12 +2,64 @@
 const fs = require('fs');
 const path = require('path');
 
+const npmVulnerabilidades = {
+    'lodash': { maxVulnerable: '4.17.20', risk: 'Prototype Pollution (CVE-2020-8203) - Se recomienda actualizar a >=4.17.21' },
+    'axios': { maxVulnerable: '1.5.1', risk: 'Vulnerabilidad XSS (CVE-2023-45857) - Se recomienda actualizar a >=1.6.0' },
+    'jsonwebtoken': { maxVulnerable: '8.5.1', risk: 'Signature Verification Bypass (CVE-2022-23529) - Se recomienda actualizar a >=9.0.0' },
+    'qs': { maxVulnerable: '6.5.2', risk: 'Prototype Pollution (CVE-2017-1000048) - Se recomienda actualizar a >=6.5.3' },
+    'moment': { maxVulnerable: '2.29.3', risk: 'Regular Expression Denial of Service - ReDoS (CVE-2022-31129) - Se recomienda actualizar a >=2.29.4' },
+    'minimist': { maxVulnerable: '1.2.5', risk: 'Prototype Pollution (CVE-2021-3918) - Se recomienda actualizar a >=1.2.6' }
+};
+
+function esVersionVulnerable(declaredVersion, maxVulnerable) {
+    if (!declaredVersion) return false;
+    const cleanDeclared = declaredVersion.replace(/[^0-9.]/g, '');
+    if (!cleanDeclared) return false;
+
+    const partsDeclared = cleanDeclared.split('.').map(Number);
+    const partsMax = maxVulnerable.split('.').map(Number);
+
+    for (let i = 0; i < Math.max(partsDeclared.length, partsMax.length); i++) {
+        const vDeclared = partsDeclared[i] || 0;
+        const vMax = partsMax[i] || 0;
+
+        if (vDeclared < vMax) return true;
+        if (vDeclared > vMax) return false;
+    }
+    return true;
+}
+
 function obtenerGrafo(rutaProyecto) {
     const srcDir = path.join(rutaProyecto, 'src');
     const grafo = {
         nodes: [],
-        links: []
+        links: [],
+        npmVulnerabilities: []
     };
+
+    // Auditar package.json
+    const packageJsonPath = path.join(rutaProyecto, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+        try {
+            const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+            const deps = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
+            
+            for (const [pkg, declaredVersion] of Object.entries(deps)) {
+                if (npmVulnerabilidades[pkg]) {
+                    const rule = npmVulnerabilidades[pkg];
+                    if (esVersionVulnerable(declaredVersion, rule.maxVulnerable)) {
+                        grafo.npmVulnerabilities.push({
+                            package: pkg,
+                            declared: declaredVersion,
+                            risk: rule.risk
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.log(`⚠️ No se pudo leer package.json en ${rutaProyecto}: ${error.message}`);
+        }
+    }
 
     let startDir = srcDir;
     let isRootScan = false;
@@ -389,11 +441,27 @@ function obtenerGrafo(rutaProyecto) {
                 tipo = 'asset';
             }
 
+            // Verificar si es una dependencia externa vulnerable de package.json
+            let hasSecurity = false;
+            let securityAlerts = null;
+            if (tipo === 'external') {
+                const foundVulnerability = grafo.npmVulnerabilities.find(v => v.package === link.target);
+                if (foundVulnerability) {
+                    hasSecurity = true;
+                    securityAlerts = [{
+                        type: 'npm_vulnerability',
+                        message: `Dependencia crítica '${foundVulnerability.package}' (${foundVulnerability.declared}) vulnerable: ${foundVulnerability.risk}`
+                    }];
+                }
+            }
+
             grafo.nodes.push({
                 id: link.target,
                 name: path.basename(link.target),
                 type: tipo,
                 ext: ext,
+                hasSecurity: hasSecurity,
+                securityAlerts: securityAlerts,
                 layer: tipo
             });
             nodosExistentes.add(link.target);

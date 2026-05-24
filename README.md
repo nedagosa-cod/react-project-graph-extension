@@ -1,6 +1,6 @@
-# Obsidian React Graph 📍
+# React Project Graph 📍
 
-**Obsidian React Graph** es una extensión premium de VS Code diseñada para líderes técnicos y arquitectos de software. Permite visualizar, analizar y auditar el grafo de dependencias de proyectos React/JS/TS con un diseño visual fluido de física interactiva, complementado con auditorías avanzadas de arquitectura, ciclos, impacto de cambios y complejidad de código.
+**React Project Graph** es una extensión premium de VS Code diseñada para líderes técnicos y arquitectos de software. Permite visualizar, analizar y auditar el grafo de dependencias de proyectos React/JS/TS con un diseño visual fluido de física interactiva, complementado con auditorías avanzadas de arquitectura, ciclos, impacto de cambios y complejidad de código.
 
 ---
 
@@ -101,7 +101,7 @@ Introduce un análisis estático síncrono de alto rendimiento para alertar de i
 
 ### 10. Robustez y Mejoras de UI (Robustness & UI Polish)
 *   **Sidebar Scrollable**: El panel flotante lateral de controles e inspector (`#controls`) cuenta con `max-height: calc(100vh - 80px)` y `overflow-y: auto`, evitando cortes de pantalla en resoluciones compactas al desplegar reportes amplios.
-*   **Scrollbars Obsidian Premium**: Diseño de barras de scroll integradas estéticamente con la paleta Obsidian y comportamiento interactivo al pasar el cursor (hover).
+*   **Scrollbars Premium**: Diseño de barras de scroll integradas estéticamente con la paleta de colores de la extensión y comportamiento interactivo al pasar el cursor (hover).
 
 ---
 
@@ -109,7 +109,7 @@ Introduce un análisis estático síncrono de alto rendimiento para alertar de i
 
 1.  Abre un proyecto React/JS/TS en VS Code.
 2.  Abre cualquier archivo de código (`.js`, `.jsx`, `.ts`, `.tsx`).
-3.  En la barra de menú superior derecha del editor, haz clic en el icono **Grafo 📍** (o abre la paleta de comandos con `Ctrl + Shift + P` y ejecuta `Obsidian React: Grafo📍`).
+3.  En la barra de menú superior derecha del editor, haz clic en el icono **Grafo 📍** (o abre la paleta de comandos con `Ctrl + Shift + P` y ejecuta `React Project Graph: Grafo📍`).
 4.  **Interacciones en el Grafo**:
     *   **Arrastrar**: Mueve nodos para inspeccionar visualmente su acoplamiento.
     *   **Click simple**: Abre el panel del inspector detallando dependencias entrantes, salientes, métricas de complejidad, tamaño, capas y alertas de problemas.

@@ -1,7 +1,7 @@
 {
-  "name": "antigravity-obsidian-react",
-  "displayName": "Obsidian React Graph",
-  "description": "Visualiza el grafo de dependencias de tu proyecto React al estilo de Obsidian.",
+  "name": "antigravity-react-project-graph",
+  "displayName": "React Project Graph",
+  "description": "Visualiza el grafo de dependencias de tu proyecto React de manera interactiva y premium.",
   "version": "1.0.0",
   "publisher": "antigravity",
   "engines": {
@@ -15,15 +15,15 @@
   "contributes": {
     "commands": [
       {
-        "command": "antigravity-obsidian-react.showGraph",
+        "command": "antigravity-react-project-graph.showGraph",
         "title": "Grafo📍",
-        "category": "Obsidian React"
+        "category": "React Project Graph"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "antigravity-obsidian-react.showGraph",
+          "command": "antigravity-react-project-graph.showGraph",
           "group": "navigation",
           "when": "resourceExtname == .js || resourceExtname == .jsx || resourceExtname == .ts || resourceExtname == .tsx"
         }

@@ -4,9 +4,9 @@ const { obtenerGrafo } = require('./scanner.js');
 const path = require('path');
 
 function activate(context) {
-    console.log('¡La extensión "Obsidian React Graph" está activa!');
+    console.log('¡La extensión "React Project Graph" está activa!');
 
-    let disposable = vscode.commands.registerCommand('antigravity-obsidian-react.showGraph', async function () {
+    let disposable = vscode.commands.registerCommand('antigravity-react-project-graph.showGraph', async function () {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) {
             vscode.window.showErrorMessage('Abre un proyecto de React con carpeta para poder ver el grafo.');
@@ -59,7 +59,7 @@ function activate(context) {
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: "Obsidian React",
+            title: "React Project Graph",
             cancellable: false
         }, async (progress) => {
             progress.report({ message: "Escaneando archivos y construyendo grafo..." });
@@ -73,8 +73,8 @@ function activate(context) {
                 }
 
                 const panel = vscode.window.createWebviewPanel(
-                    'obsidianReactGraph',
-                    'Grafo Obsidian: ' + workspaceFolders[0].name,
+                    'reactProjectGraph',
+                    'Grafo de Dependencias: ' + workspaceFolders[0].name,
                     vscode.ViewColumn.One,
                     {
                         enableScripts: true,
@@ -117,7 +117,7 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grafo de Dependencias - Estilo Obsidian</title>
+    <title>Grafo de Dependencias - React Project Graph</title>
     <!-- Cargamos d3 desde CDN HTTPS ya que el webview tiene acceso a internet por defecto -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>

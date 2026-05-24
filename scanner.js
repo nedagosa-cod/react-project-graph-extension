@@ -139,6 +139,27 @@ function obtenerGrafo(rutaProyecto) {
             console.log(`⚠️ No se pudo leer el archivo ${idArchivo}: ${error.message}`);
         }
 
+        let exportName = null;
+        if (codigo) {
+            // 1. Buscar 'export default [async] function Nombre'
+            const matchFunction = /export\s+default\s+(?:async\s+)?function\s+([A-Za-z0-9_$]+)/.exec(codigo);
+            if (matchFunction) {
+                exportName = matchFunction[1];
+            } else {
+                // 2. Buscar 'export default class Nombre'
+                const matchClass = /export\s+default\s+class\s+([A-Za-z0-9_$]+)/.exec(codigo);
+                if (matchClass) {
+                    exportName = matchClass[1];
+                } else {
+                    // 3. Buscar 'export default Nombre' (var, arrow func, etc.)
+                    const matchVar = /export\s+default\s+([A-Za-z0-9_$]+)/.exec(codigo);
+                    if (matchVar && !['function', 'class', 'const', 'let', 'var', 'async'].includes(matchVar[1])) {
+                        exportName = matchVar[1];
+                    }
+                }
+            }
+        }
+
         grafo.nodes.push({ 
             id: idArchivo, 
             name: path.basename(rutaArchivo), 
@@ -146,6 +167,7 @@ function obtenerGrafo(rutaProyecto) {
             size: tamañoArchivo,
             ext: ext,
             lines: lineas,
+            exportName: exportName || null,
             layer: capa
         });
 

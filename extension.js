@@ -1149,13 +1149,20 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
             node = nodeEnter.merge(nodeSelection)
                 .attr("class", d => "nodo " + (d.layer || d.type || "local"));
 
-            // Sincronizar etiquetas
             const labelSelection = label.data(activeNodes, d => d.id);
             labelSelection.exit().remove();
             const labelEnter = labelSelection.enter().append("text")
                 .attr("class", "etiqueta")
                 .attr("dy", d => - (obtenerRadioNodo(d) + 5))
-                .text(d => d.name);
+                .text(d => {
+                    if (d.exportName) {
+                        const lowName = d.name.toLowerCase();
+                        if (lowName.startsWith('page.') || lowName.startsWith('layout.') || lowName.startsWith('route.') || lowName.startsWith('index.')) {
+                            return d.name + ' (' + d.exportName + ')';
+                        }
+                    }
+                    return d.name;
+                });
             label = labelEnter.merge(labelSelection);
 
             if (activeBlastSource) {
@@ -1429,13 +1436,17 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
             d3.select("#inspector-node-details").style("display", "block");
             d3.select("#inspector-general-report").style("display", "none");
 
-            d3.select("#ins-name").text(d.name);
+            const displayName = d.exportName ? d.name + ' (' + d.exportName + ')' : d.name;
+            d3.select("#ins-name").text(displayName);
             d3.select("#ins-path").text(d.id);
 
             // Mostrar capa en el inspector
             const colorCapa = capaColores[d.layer] || '#7b2cbf';
-            d3.select("#ins-layer")
-                .html("Capa: <span style='color: " + colorCapa + "; font-weight: 600;'>" + (capaEspanol[d.layer] || d.layer || 'Local') + "</span>");
+            let layerHtml = "Capa: <span style='color: " + colorCapa + "; font-weight: 600;'>" + (capaEspanol[d.layer] || d.layer || 'Local') + "</span>";
+            if (d.exportName) {
+                layerHtml += "<br/>Componente: <span style='color: #ffb703; font-weight: 600;'>" + d.exportName + "</span>";
+            }
+            d3.select("#ins-layer").html(layerHtml);
 
             // Mostrar tamaño (solo si es local y existe)
             if (d.type === 'local' && d.size !== undefined) {

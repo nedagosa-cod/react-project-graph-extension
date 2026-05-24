@@ -765,12 +765,31 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
             if (n.type !== 'local') return false;
             if ((inDegree[n.id] || 0) > 0) return false;
             
-            // Filtrar archivos de entrada comunes (case insensitive)
             const nombre = n.name.toLowerCase();
-            const esPuntoEntrada = nombre === 'main.tsx' || nombre === 'main.ts' || nombre === 'main.jsx' || nombre === 'main.js' ||
-                                   nombre === 'index.tsx' || nombre === 'index.ts' || nombre === 'index.jsx' || nombre === 'index.js' ||
-                                   nombre === 'app.tsx' || nombre === 'app.ts' || nombre === 'app.jsx' || nombre === 'app.js';
-            return !esPuntoEntrada;
+            const pathLower = n.id.toLowerCase();
+            
+            // 1. Filtrar puntos de entrada comunes de React/Vite
+            const esPuntoEntradaReact = nombre === 'main.tsx' || nombre === 'main.ts' || nombre === 'main.jsx' || nombre === 'main.js' ||
+                                        nombre === 'index.tsx' || nombre === 'index.ts' || nombre === 'index.jsx' || nombre === 'index.js' ||
+                                        nombre === 'app.tsx' || nombre === 'app.ts' || nombre === 'app.jsx' || nombre === 'app.js';
+            if (esPuntoEntradaReact) return false;
+
+            // 2. Filtrar archivos especiales de Next.js (App Router)
+            const esSpecialNextFile = nombre === 'layout.tsx' || nombre === 'layout.ts' || nombre === 'layout.jsx' || nombre === 'layout.js' ||
+                                      nombre === 'page.tsx' || nombre === 'page.ts' || nombre === 'page.jsx' || nombre === 'page.js' ||
+                                      nombre === 'loading.tsx' || nombre === 'loading.ts' || nombre === 'loading.jsx' || nombre === 'loading.js' ||
+                                      nombre === 'error.tsx' || nombre === 'error.ts' || nombre === 'error.jsx' || nombre === 'error.js' ||
+                                      nombre === 'template.tsx' || nombre === 'template.ts' || nombre === 'template.jsx' || nombre === 'template.js' ||
+                                      nombre === 'not-found.tsx' || nombre === 'not-found.ts' || nombre === 'not-found.jsx' || nombre === 'not-found.js' ||
+                                      nombre === 'route.ts' || nombre === 'route.js' ||
+                                      nombre === 'middleware.ts' || nombre === 'middleware.js' ||
+                                      nombre === 'instrumentation.ts' || nombre === 'instrumentation.js';
+            if (esSpecialNextFile) return false;
+            
+            // 3. Filtrar cualquier archivo que esté dentro de la carpeta 'pages' (Next.js Pages Router)
+            if (pathLower.includes('/pages/') || pathLower.startsWith('pages/')) return false;
+
+            return true;
         }
 
         function mostrarReporteGeneralCodigoMuerto() {

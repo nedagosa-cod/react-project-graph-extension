@@ -68,6 +68,14 @@ Vincula dinámicamente tu editor de código de VS Code con el grafo de dependenc
 
 ---
 
+### 7. Soporte Avanzado para Next.js (Next.js Deep Support)
+Soporte adaptativo nativo para proyectos Next.js bajo App Router y Pages Router con o sin directorio `src/`, clasificando correctamente archivos y previniendo falsos positivos de código muerto.
+*   **Escaneo Inteligente**: Detecta automáticamente carpetas de ruteo como `app/` o `pages/` en la raíz del proyecto si no existe `src/`.
+*   **Exclusión de Rutas y Layouts**: Evita que los puntos de entrada dinámicos de Next.js (`layout.tsx`, `page.tsx`, `route.ts`, `middleware.ts`, etc.) sean catalogados falsamente como "Código Muerto / Archivos Huérfanos" a pesar de tener 0 importaciones entrantes.
+*   **Clasificación de Capa API**: Mapea los archivos de rutas de API (`/api/`) a la capa de **Infraestructura (`data`)** de manera automática.
+
+---
+
 ## 🚀 Cómo Usar la Extensión
 
 1.  Abre un proyecto React/JS/TS en VS Code.

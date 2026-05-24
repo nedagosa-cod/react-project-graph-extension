@@ -9,8 +9,12 @@ function obtenerGrafo(rutaProyecto) {
         links: []
     };
 
+    let startDir = srcDir;
+    let isRootScan = false;
     if (!fs.existsSync(srcDir)) {
-        return grafo;
+        // Si no existe 'src', buscamos si existe 'app' o 'pages' en la raíz, o usamos la raíz del proyecto
+        startDir = rutaProyecto;
+        isRootScan = true;
     }
 
     // Resuelve rutas de importación relativas incluyendo extensiones omitidas o carpetas /index
@@ -35,6 +39,15 @@ function obtenerGrafo(rutaProyecto) {
     }
 
     function escanearCarpeta(directorio) {
+        const baseName = path.basename(directorio);
+        // Excluir carpetas pesadas del sistema, dependencias y builds
+        if ([
+            'node_modules', '.git', '.next', 'dist', 'build', 'out', 
+            '.vscode', '.idea', 'public', '.agents', '.gemini'
+        ].includes(baseName)) {
+            return;
+        }
+
         const archivos = fs.readdirSync(directorio);
 
         for (const archivo of archivos) {
@@ -49,6 +62,12 @@ function obtenerGrafo(rutaProyecto) {
                 archivo.endsWith('.ts') || 
                 archivo.endsWith('.tsx')
             ) {
+                // Evitar procesar archivos de configuración en la raíz del proyecto
+                if (isRootScan && directorio === rutaProyecto) {
+                    if (archivo.includes('.config.') || archivo === 'eslint.config.js') {
+                        continue;
+                    }
+                }
                 procesarArchivo(rutaCompleta, stats.size);
             }
         }
@@ -70,6 +89,7 @@ function obtenerGrafo(rutaProyecto) {
         // 2. Infraestructura (Datos/API/Utils/Services/Repositories)
         if (
             pathLower.includes('/services/') || pathLower.includes('/api/') || 
+            pathLower.includes('/app/api/') || pathLower.includes('/pages/api/') ||
             pathLower.includes('/utils/') || pathLower.includes('/infra/') ||
             pathLower.includes('/repositories/') || pathLower.includes('/data/') ||
             pathLower.endsWith('/services') || pathLower.endsWith('/api') || 
@@ -180,7 +200,7 @@ function obtenerGrafo(rutaProyecto) {
         }
     }
 
-    escanearCarpeta(srcDir);
+    escanearCarpeta(startDir);
 
     // POST-PROCESAMIENTO PARA EVITAR ERRORES D3 Y AGREGAR NODOS EXTERNOS/FALTANTES/ASSETS
     const nodosExistentes = new Set(grafo.nodes.map(n => n.id));

@@ -76,6 +76,35 @@ Soporte adaptativo nativo para proyectos Next.js bajo App Router y Pages Router 
 
 ---
 
+### 8. Extracción de Exportación por Defecto (Default Export Extractor)
+Resuelve la sobrecarga visual y semántica de archivos con nombres genéricos (como `page.tsx`, `layout.tsx`, `route.ts`, o `index.js`) extrayendo de manera estática y eficiente el nombre del componente o clase que se exporta por defecto (`export default`).
+*   **Enriquecimiento de Etiquetas**: Las etiquetas del grafo se actualizan automáticamente para mostrar la función real en Next.js (e.g. `page.tsx (LoginPage)`).
+*   **Inspector Enriquecido**: Muestra de forma destacada el componente exportado dentro del panel lateral para agilizar el entendimiento.
+
+---
+
+### 9. Suite Completa de Auditoría de Seguridad (Security Audit Suite)
+Introduce un análisis estático síncrono de alto rendimiento para alertar de inmediato sobre vulnerabilidades críticas y brechas de seguridad arquitectónica:
+*   **Fugas de Secretos**: Detección de claves API hardcodeadas (AWS, Stripe, Google/Firebase, Slack) y variables de credenciales críticas (`secret`, `password`, `jwt`) asignadas a textos literales.
+*   **Fugas Cliente/Servidor en Next.js**: Advertencia automática si utilizas variables de entorno de servidor (`process.env.XYZ` sin el prefijo `NEXT_PUBLIC_`) dentro de componentes marcados con `"use client"`.
+*   **Smells de Inyección y Funciones Inseguras**: Detección de patrones inseguros como `dangerouslySetInnerHTML`, `eval()`, constructor `new Function()`, `document.write()` o temporizadores con strings directos.
+*   **Mapa de Superficie de Ataque de Next.js**: Clasificación dinámica de todas las páginas y endpoints del proyecto según su estado de autenticación estática (`Protegido Directamente`, `Público Conocido` o `Expuesto / Verificar en Middleware`).
+*   **Auditoría de Dependencias Críticas (`package.json`)**:
+    *   **Búsqueda Adaptativa de Dependencias**: El escáner busca de forma inteligente el archivo `package.json` en la raíz y de manera recursiva en subcarpetas de primer nivel (como `frontend/`), garantizando compatibilidad completa y nativa con monorepos y configuraciones anidadas.
+    *   **Alertas Semver Autónomas**: Compara versiones declaradas con un diccionario local autónomo de paquetes npm vulnerables a CVEs comunes (e.g., `lodash` < 4.17.21, `axios` < 1.6.0, `jsonwebtoken` < 9.0.0, `qs`, `moment`, `minimist`).
+*   **Visualización e Iluminación Neón**:
+    *   Los archivos locales con riesgos de seguridad brillan en **rojo carmesí neón con una animación de pulso continuo**.
+    *   Las dependencias externas vulnerables que se importan en el proyecto se muestran como nodos externos glowing en rojo carmesí.
+    *   Las rutas expuestas sin protección directa brillan en **naranja con contorno discontinuo**.
+
+---
+
+### 10. Robustez y Mejoras de UI (Robustness & UI Polish)
+*   **Sidebar Scrollable**: El panel flotante lateral de controles e inspector (`#controls`) cuenta con `max-height: calc(100vh - 80px)` y `overflow-y: auto`, evitando cortes de pantalla en resoluciones compactas al desplegar reportes amplios.
+*   **Scrollbars Obsidian Premium**: Diseño de barras de scroll integradas estéticamente con la paleta Obsidian y comportamiento interactivo al pasar el cursor (hover).
+
+---
+
 ## 🚀 Cómo Usar la Extensión
 
 1.  Abre un proyecto React/JS/TS en VS Code.

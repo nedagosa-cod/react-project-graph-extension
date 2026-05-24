@@ -6,7 +6,7 @@ const path = require('path');
 function activate(context) {
     console.log('¡La extensión "Obsidian React Graph" está activa!');
 
-    let disposable = vscode.commands.registerCommand('antigravity-obsidian-react.showGraph', function () {
+    let disposable = vscode.commands.registerCommand('antigravity-obsidian-react.showGraph', async function () {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) {
             vscode.window.showErrorMessage('Abre un proyecto de React con carpeta para poder ver el grafo.');
@@ -14,7 +14,49 @@ function activate(context) {
         }
 
         const rutaProyecto = workspaceFolders[0].uri.fsPath;
-        
+
+        // Detectar si hay un archivo activo en el editor
+        const activeEditor = vscode.window.activeTextEditor;
+        let activeFileId = null;
+        let activeFileName = '';
+        if (activeEditor) {
+            const activeFilePath = activeEditor.document.uri.fsPath;
+            if (activeFilePath.startsWith(rutaProyecto)) {
+                activeFileId = path.relative(rutaProyecto, activeFilePath).replace(/\\/g, '/');
+                activeFileName = path.basename(activeFilePath);
+            }
+        }
+
+        let nodoEnfocadoId = null;
+
+        // Si hay archivo activo, preguntar al usuario qué vista abrir
+        if (activeFileId) {
+            const opciones = [
+                {
+                    label: `🌐 Abrir Grafo Completo (General)`,
+                    description: 'Muestra la vista global de todo el proyecto'
+                },
+                {
+                    label: `🎯 Abrir Grafo Enfocado en: ${activeFileName}`,
+                    description: `Focaliza e inspecciona automáticamente el archivo ${activeFileName}`,
+                    id: activeFileId
+                }
+            ];
+
+            const seleccion = await vscode.window.showQuickPick(opciones, {
+                placeHolder: '¿Cómo deseas visualizar el grafo de dependencias?'
+            });
+
+            if (!seleccion) {
+                // Cancelado
+                return;
+            }
+
+            if (seleccion.id) {
+                nodoEnfocadoId = seleccion.id;
+            }
+        }
+
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: "Obsidian React",
@@ -40,7 +82,7 @@ function activate(context) {
                     }
                 );
 
-                panel.webview.html = obtenerHtmlWebview(grafo);
+                panel.webview.html = obtenerHtmlWebview(grafo, nodoEnfocadoId);
 
                 // Escuchamos mensajes del webview para abrir archivos
                 panel.webview.onDidReceiveMessage(message => {
@@ -68,7 +110,7 @@ function activate(context) {
 
 function deactivate() {}
 
-function obtenerHtmlWebview(grafo) {
+function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
     return `
 <!DOCTYPE html>
 <html lang="es">
@@ -703,6 +745,7 @@ function obtenerHtmlWebview(grafo) {
 
     <script>
         const vscode = acquireVsCodeApi();
+        const initialFocusedNodeId = ${JSON.stringify(nodoEnfocadoId)};
         const data = ${JSON.stringify(grafo)};
 
         // Declaramos selectedNode AL INICIO para evitar el error de inicialización TDZ en render()
@@ -1246,6 +1289,28 @@ function obtenerHtmlWebview(grafo) {
         });
 
         render();
+
+        // Autoseleccionar y enfocar el nodo inicial si existe
+        if (initialFocusedNodeId) {
+            const targetNode = data.nodes.find(n => n.id === initialFocusedNodeId);
+            if (targetNode) {
+                selectedNode = targetNode;
+                highlightSelectedNode(targetNode);
+                
+                // Centrar suavemente la cámara sobre el nodo enfocado al inicializar
+                setTimeout(() => {
+                    if (targetNode.x !== undefined && targetNode.y !== undefined) {
+                        const zoomBehavior = d3.zoom().scaleExtent([0.1, 4]).on("zoom", (event) => {
+                            g.attr("transform", event.transform);
+                        });
+                        svg.transition().duration(800).call(
+                            zoomBehavior.transform,
+                            d3.zoomIdentity.translate(width / 2 - targetNode.x, height / 2 - targetNode.y).scale(1.2)
+                        );
+                    }
+                }, 100);
+            }
+        }
 
         function handleNodeClick(event, d) {
             event.stopPropagation();

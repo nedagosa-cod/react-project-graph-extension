@@ -61,6 +61,13 @@ Identifica cuellos de botella de mantenimiento analizando módulos que concentra
 
 ---
 
+### 6. Visualización Enfocada en Archivo Activo (Active File Focus)
+Vincula dinámicamente tu editor de código de VS Code con el grafo de dependencias, permitiéndote localizar de inmediato la estructura y relaciones del módulo que estás editando.
+*   **Diálogo QuickPick**: Al presionar el botón de **"Grafo 📍"** en la barra del editor de un archivo `.js`/`.ts`/`.jsx`/`.tsx` activo, VS Code te desplegará un menú flotante para elegir si deseas abrir el grafo completo o inicializar la vista con el foco sobre el archivo activo.
+*   **Autofoco y Centrado SVG**: Al seleccionar la apertura enfocada, el Webview seleccionará automáticamente el nodo inicial, desplegará su Inspector lateral con todas sus métricas y alertas, y realizará una **animación suave de cámara tridimensional (zoom y paneo a 1.2x)** centrando visualmente el nodo en la pantalla.
+
+---
+
 ## 🚀 Cómo Usar la Extensión
 
 1.  Abre un proyecto React/JS/TS en VS Code.

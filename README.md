@@ -84,7 +84,8 @@ Resuelve la sobrecarga visual y semántica de archivos con nombres genéricos (c
 ---
 
 ### 9. Suite Completa de Auditoría de Seguridad (Security Audit Suite)
-Introduce un análisis estático síncrono de alto rendimiento para alertar de inmediato sobre vulnerabilidades críticas y brechas de seguridad arquitectónica:
+Introduce un análisis estático síncrono de alto rendimiento para alertar de inmediato sobre vulnerabilidades críticas y brechas de seguridad arquitectónica, ahora con detalles de diagnóstico avanzados:
+*   **Diagnóstico Enriquecido en el Inspector**: Cada hallazgo reporta con total precisión el **número de línea física**, el **fragmento de código afectado (*snippet*)**, una explicación teórica detallada del **riesgo** y **recomendaciones claras de mitigación**.
 *   **Fugas de Secretos**: Detección de claves API hardcodeadas (AWS, Stripe, Google/Firebase, Slack) y variables de credenciales críticas (`secret`, `password`, `jwt`) asignadas a textos literales.
 *   **Fugas Cliente/Servidor en Next.js**: Advertencia automática si utilizas variables de entorno de servidor (`process.env.XYZ` sin el prefijo `NEXT_PUBLIC_`) dentro de componentes marcados con `"use client"`.
 *   **Smells de Inyección y Funciones Inseguras**: Detección de patrones inseguros como `dangerouslySetInnerHTML`, `eval()`, constructor `new Function()`, `document.write()` o temporizadores con strings directos.
@@ -99,7 +100,35 @@ Introduce un análisis estático síncrono de alto rendimiento para alertar de i
 
 ---
 
-### 10. Robustez y Mejoras de UI (Robustness & UI Polish)
+### 10. Minimización Interactiva de Paneles Flotantes (Collapsible Panels)
+Optimiza la visibilidad en lienzos D3 congestionados minimizando los paneles flotantes laterales independientes:
+*   **Cuerpo Colapsable con Desvanecimiento**: Los paneles de **Leyenda** y **Controles & Inspector** se pueden minimizar independientemente, colapsando su contenido y desvaneciéndolo con un sutil desplazamiento vertical de `-8px`.
+*   **Animación de Caret y Transiciones Bezier**: Cuenta con un botón premium de caret SVG que rota suavemente `-180deg` cuando el panel está minimizado, todo controlado con curvas bezier fluidas (`cubic-bezier(0.4, 0, 0.2, 1)`).
+
+---
+
+### 11. Sincronización en Tiempo Real (Live-Reload / Guardado en Caliente)
+El grafo ya no es estático. Ahora responde a las modificaciones del desarrollador de manera reactiva:
+*   **Escaneo Síncrono al Guardar**: Registra un listener de ciclo de vida (`onDidSaveTextDocument`) en VS Code. Al presionar **Guardar (`Ctrl + S`)** en cualquier archivo `.js`, `.jsx`, `.ts`, `.tsx` o `.json`, el escáner se ejecuta de inmediato en segundo plano.
+*   **Actualización Sin Pérdida de Foco**: El Webview captura el nuevo grafo, actualiza la simulación D3 y **retiene la selección de tu nodo en el inspector** para que veas en milisegundos cómo desaparecen los riesgos de seguridad o infracciones tras corregir tu código.
+
+---
+
+### 12. Exportador de Plano de Arquitectura de Alta Densidad (AI-Optimized Exporter)
+Herramienta de nivel industrial diseñada para alimentar prompts de Inteligencias Artificiales integradas en IDEs (como Cursor, Windsurf, Antigravity, etc.):
+*   **Exportación Instantánea a la Raíz**: Un nuevo botón azul premium **"Exportar Arquitectura (IA)"** compila un archivo condensado **`project_architecture.md`** en la raíz del proyecto.
+*   **Compresión de Tokens Extrema**: Formatea todo el árbol de dependencias, imports y auditorías en un formato lineal supercondensado (ahorrando más de un 70% de tokens), proporcionando el contexto global ideal para que la IA comprenda la arquitectura completa del proyecto sin alucinaciones y sin consumir tu saldo mensual de tokens.
+
+---
+
+### 13. Autodetección de Stack Tecnológico e Integraciones Clave
+Analiza tu arquitectura detectando las tecnologías sobre las cuales está cimentado tu proyecto:
+*   **Detección de Dependencias Críticas**: Inspecciona de forma automatizada tu `package.json` para clasificar: Frameworks (Next.js, Vite), Estado Local (Zustand, Redux), Estado Servidor (TanStack Query, Apollo Client, Axios), Tipado (Zod, TypeScript), Formularios (React Hook Form) y Componentes de UI (Radix, Material UI).
+*   **Pestaña dedicada "Tech Stack"**: Añade una pestaña de navegación interactiva en el panel lateral de controles para ver la ficha técnica de integraciones del proyecto, e incorpora este mismo contexto al inicio de la exportación Markdown de IA.
+
+---
+
+### 14. Robustez y Mejoras de UI (Robustness & UI Polish)
 *   **Sidebar Scrollable**: El panel flotante lateral de controles e inspector (`#controls`) cuenta con `max-height: calc(100vh - 80px)` y `overflow-y: auto`, evitando cortes de pantalla en resoluciones compactas al desplegar reportes amplios.
 *   **Scrollbars Premium**: Diseño de barras de scroll integradas estéticamente con la paleta de colores de la extensión y comportamiento interactivo al pasar el cursor (hover).
 

@@ -846,6 +846,31 @@
         
         d3.select("#search-input").on("input", render);
 
+        // Minimizar / Maximizar paneles flotantes
+        d3.select("#toggle-legend-btn").on("click", function(event) {
+            if (event) event.stopPropagation();
+            const panel = d3.select("#legend");
+            const isMinimized = panel.classed("minimized");
+            panel.classed("minimized", !isMinimized);
+            d3.select(this).attr("title", isMinimized ? "Minimizar panel" : "Maximizar panel");
+        });
+
+        d3.select("#toggle-controls-btn").on("click", function(event) {
+            if (event) event.stopPropagation();
+            const panel = d3.select("#controls");
+            const isMinimized = panel.classed("minimized");
+            panel.classed("minimized", !isMinimized);
+            d3.select(this).attr("title", isMinimized ? "Minimizar panel" : "Maximizar panel");
+        });
+
+        // Exportar arquitectura en Markdown para la IA
+        d3.select("#export-md-btn").on("click", function(event) {
+            if (event) event.stopPropagation();
+            vscode.postMessage({
+                command: 'exportarMarkdown'
+            });
+        });
+
         d3.select("#charge-slider").on("input", function() {
             const val = +this.value;
             d3.select("#charge-val").text(val);
@@ -1070,10 +1095,50 @@
             // Alerta de Seguridad para el nodo seleccionado
             const securityContainer = d3.select("#inspector-security");
             if (d.hasSecurity && d.securityAlerts && d.securityAlerts.length > 0) {
-                let html = '<div class="security-alert-title">⚠️ Riesgo de Seguridad Detectado</div>';
-                d.securityAlerts.forEach(alert => {
-                    html += '<div class="security-alert-detail">• ' + alert.message + '</div>';
+                const escapeHtml = (text) => {
+                    if (!text) return '';
+                    return text
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
+                };
+
+                let html = '<div class="security-alert-title" style="margin-bottom: 8px;">🛡️ Diagnóstico de Seguridad</div>';
+                
+                d.securityAlerts.forEach((alert, index) => {
+                    if (index > 0) {
+                        html += '<hr style="border: 0; border-top: 1px solid rgba(255, 60, 56, 0.25); margin: 12px 0 8px 0;" />';
+                    }
+                    
+                    html += '<div style="margin-bottom: 6px;">';
+                    html += '  <strong style="color: #ff3c38; font-size: 11px;">⚠️ ' + escapeHtml(alert.message) + '</strong>';
+                    html += '</div>';
+                    
+                    // Show line number and code snippet if available
+                    if (alert.line !== undefined && alert.snippet !== undefined) {
+                        html += '<div class="security-alert-code">';
+                        html += '  <span style="color: #ff8b8b; font-weight: 600; margin-right: 6px;">Línea ' + alert.line + ':</span>';
+                        html += '  <code>' + escapeHtml(alert.snippet) + '</code>';
+                        html += '</div>';
+                    }
+                    
+                    // Show risk details if available
+                    if (alert.risk) {
+                        html += '<div style="margin-top: 6px; font-size: 11px; color: var(--vscode-sideBar-foreground, #ccc); opacity: 0.95; line-height: 1.45;">';
+                        html += '  <strong style="color: #ff8b8b;">Riesgo:</strong> ' + escapeHtml(alert.risk);
+                        html += '</div>';
+                    }
+                    
+                    // Show recommendation if available
+                    if (alert.recommendation) {
+                        html += '<div style="margin-top: 6px; font-size: 11px; color: #2ec4b6; opacity: 0.95; line-height: 1.45;">';
+                        html += '  <strong style="color: #6ee7b7;">Recomendación:</strong> ' + escapeHtml(alert.recommendation);
+                        html += '</div>';
+                    }
                 });
+                
                 securityContainer.style("display", "block").html(html);
             } else {
                 securityContainer.style("display", "none");
@@ -1382,3 +1447,78 @@
             d.fx = null;
             d.fy = null;
         }
+
+        // Escuchar mensajes provenientes de la extensión VS Code para actualizar el grafo en tiempo real
+        window.addEventListener('message', event => {
+            const message = event.data;
+            if (message.command === 'actualizarGrafo') {
+                const nuevoGrafo = message.grafo;
+                
+                // 1. Actualizar datos globales
+                data.nodes = nuevoGrafo.nodes;
+                data.links = nuevoGrafo.links;
+                data.npmVulnerabilities = nuevoGrafo.npmVulnerabilities;
+                data.cycles = nuevoGrafo.cycles;
+
+                // 2. Recalcular grados de entrada (in-degree)
+                for (const key in inDegree) delete inDegree[key];
+                data.nodes.forEach(n => inDegree[n.id] = 0);
+                data.links.forEach(l => {
+                    const targetId = l.target?.id || l.target;
+                    if (inDegree[targetId] !== undefined) {
+                        inDegree[targetId]++;
+                    }
+                });
+
+                // 3. Mantener e inspeccionar el nodo seleccionado si sigue existiendo
+                if (selectedNode) {
+                    const nodoEquivalente = data.nodes.find(n => n.id === selectedNode.id);
+                    if (nodoEquivalente) {
+                        selectedNode = nodoEquivalente;
+                        highlightSelectedNode(selectedNode);
+                    } else {
+                        deselectNode();
+                    }
+                }
+
+                // 4. Actualizar nodos y enlaces en la simulación de D3
+                simulation.nodes(data.nodes);
+                simulation.force("link").links(data.links);
+                
+                // 5. Actualizar la visualización de la pestaña del stack de tecnología
+                renderizarTechStack();
+
+                // 6. Re-renderizar el grafo con los nuevos datos
+                render();
+            }
+        });
+
+        function renderizarTechStack() {
+            const stack = data.techStack || {};
+            d3.select("#tech-framework").text(stack.framework || 'React (Cliente)');
+            d3.select("#tech-state-local").text(stack.stateLocal || 'React Context / Local State');
+            d3.select("#tech-state-server").text(stack.stateServer || 'Fetch API / Nativo');
+            d3.select("#tech-validation").text(stack.validation || 'TypeScript');
+            d3.select("#tech-styling").text(stack.styling || 'CSS nativo');
+            d3.select("#tech-forms").text(stack.forms || 'Formularios nativos');
+            d3.select("#tech-ui").text(stack.uiComponents || 'Ninguno');
+        }
+
+        // Navegación de Pestañas (Tabs) en el panel de controles
+        d3.select("#tab-filters").on("click", function() {
+            d3.select("#tab-filters").classed("active", true);
+            d3.select("#tab-tech").classed("active", false);
+            d3.select("#filters-panel").style("display", "block");
+            d3.select("#tech-stack-panel").style("display", "none");
+        });
+
+        d3.select("#tab-tech").on("click", function() {
+            d3.select("#tab-tech").classed("active", true);
+            d3.select("#tab-filters").classed("active", false);
+            d3.select("#tech-stack-panel").style("display", "flex");
+            d3.select("#filters-panel").style("display", "none");
+            renderizarTechStack();
+        });
+
+        // Inicializar renderizado del stack
+        renderizarTechStack();

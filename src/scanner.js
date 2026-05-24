@@ -34,7 +34,16 @@ function obtenerGrafo(rutaProyecto) {
     const grafo = {
         nodes: [],
         links: [],
-        npmVulnerabilities: []
+        npmVulnerabilities: [],
+        techStack: {
+            framework: 'React (Cliente)',
+            stateLocal: 'React State / Context',
+            stateServer: 'Fetch API / Nativo',
+            validation: 'Ninguno (JS nativo)',
+            styling: 'CSS nativo',
+            forms: 'Formularios nativos',
+            uiComponents: 'Ninguno'
+        }
     };
 
     // Auditar package.json
@@ -61,6 +70,51 @@ function obtenerGrafo(rutaProyecto) {
             const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
             const deps = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
             
+            // Frameworks
+            if (deps['next']) grafo.techStack.framework = `Next.js (${deps['next']})`;
+            else if (deps['react-native']) grafo.techStack.framework = `React Native (${deps['react-native']})`;
+            else if (deps['vite']) grafo.techStack.framework = `Vite + React`;
+            
+            // State Local
+            if (deps['zustand']) grafo.techStack.stateLocal = `Zustand (${deps['zustand']})`;
+            else if (deps['@reduxjs/toolkit'] || deps['redux']) grafo.techStack.stateLocal = `Redux Toolkit / Redux`;
+            else if (deps['jotai']) grafo.techStack.stateLocal = `Jotai (${deps['jotai']})`;
+            else if (deps['recoil']) grafo.techStack.stateLocal = `Recoil (${deps['recoil']})`;
+            else if (deps['mobx']) grafo.techStack.stateLocal = `MobX`;
+            
+            // State Server / Fetching
+            if (deps['@tanstack/react-query'] || deps['react-query']) grafo.techStack.stateServer = `TanStack Query (React Query)`;
+            else if (deps['swr']) grafo.techStack.stateServer = `SWR (${deps['swr']})`;
+            else if (deps['@apollo/client']) grafo.techStack.stateServer = `Apollo Client (GraphQL)`;
+            else if (deps['axios']) grafo.techStack.stateServer = `Axios (${deps['axios']})`;
+            
+            // Validación / Schemas
+            if (deps['zod']) grafo.techStack.validation = `Zod (${deps['zod']})`;
+            else if (deps['yup']) grafo.techStack.validation = `Yup (${deps['yup']})`;
+            else if (deps['joi']) grafo.techStack.validation = `Joi`;
+            else if (deps['typescript']) grafo.techStack.validation = `TypeScript (${deps['typescript']})`;
+            
+            // Estilos
+            const stylesList = [];
+            if (deps['tailwindcss']) stylesList.push(`TailwindCSS (${deps['tailwindcss']})`);
+            if (deps['styled-components']) stylesList.push(`Styled Components`);
+            if (deps['@emotion/react']) stylesList.push(`Emotion`);
+            if (deps['sass']) stylesList.push(`Sass`);
+            if (stylesList.length > 0) grafo.techStack.styling = stylesList.join(', ');
+            
+            // Formularios
+            if (deps['react-hook-form']) grafo.techStack.forms = `React Hook Form (${deps['react-hook-form']})`;
+            else if (deps['formik']) grafo.techStack.forms = `Formik`;
+            
+            // Componentes UI
+            const uiList = [];
+            if (deps['@mui/material']) uiList.push('Material UI');
+            if (deps['antd']) uiList.push('Ant Design');
+            if (deps['@radix-ui/react-primitive'] || deps['@radix-ui/react-dialog']) uiList.push('Radix UI');
+            if (deps['framer-motion']) uiList.push('Framer Motion');
+            if (deps['lucide-react']) uiList.push('Lucide Icons');
+            if (uiList.length > 0) grafo.techStack.uiComponents = uiList.join(', ');
+
             for (const [pkg, declaredVersion] of Object.entries(deps)) {
                 if (npmVulnerabilidades[pkg]) {
                     const rule = npmVulnerabilidades[pkg];
@@ -230,40 +284,67 @@ function obtenerGrafo(rutaProyecto) {
                 }
             }
 
+            const obtenerDetallesLinea = (codigo, index) => {
+                const subStr = codigo.substring(0, index);
+                const line = subStr.split('\n').length;
+                const snippet = codigo.split('\n')[line - 1].trim();
+                return { line, snippet };
+            };
+
             // Detección de Secretos Hardcodeados
             const awsAccessKeyRegex = /\bAKIA[0-9A-Z]{16}\b/g;
             let awsMatch;
             while ((awsMatch = awsAccessKeyRegex.exec(codigo)) !== null) {
+                const { line, snippet } = obtenerDetallesLinea(codigo, awsMatch.index);
                 securityAlerts.push({
                     type: 'secret_leak',
-                    message: `Posible fuga de clave de acceso AWS (AWS Access Key ID) detectada.`
+                    line,
+                    snippet,
+                    message: `Clave de acceso de AWS expuesta (AWS Access Key ID).`,
+                    risk: `Las credenciales de AWS hardcodeadas en el código fuente pueden ser robadas por atacantes o expuestas en repositorios públicos, dando acceso total o parcial a tus recursos en la nube.`,
+                    recommendation: `Mueve esta clave a un archivo de configuración de variables de entorno (.env) o usa servicios de gestión de secretos como AWS Secrets Manager, y asegúrate de añadir el archivo .env a tu .gitignore.`
                 });
             }
 
             const stripeKeyRegex = /\bsk_(?:live|test)_[0-9a-zA-Z]{24}\b/g;
             let stripeMatch;
             while ((stripeMatch = stripeKeyRegex.exec(codigo)) !== null) {
+                const { line, snippet } = obtenerDetallesLinea(codigo, stripeMatch.index);
                 securityAlerts.push({
                     type: 'secret_leak',
-                    message: `Posible fuga de API Key de Stripe (Secret Key) detectada.`
+                    line,
+                    snippet,
+                    message: `API Key secreta de Stripe expuesta.`,
+                    risk: `El uso de claves secretas ('sk_') de Stripe expuestas en el código fuente permite a cualquier persona interactuar con tu cuenta de Stripe (crear cargos, reembolsos, etc.), comprometiendo tus fondos y la seguridad financiera de tu aplicación.`,
+                    recommendation: `Usa variables de entorno del sistema o archivos .env no integrados en el control de versiones para cargar la clave de Stripe de forma dinámica en el servidor.`
                 });
             }
 
             const googleKeyRegex = /\bAIza[0-9A-Za-z-_]{35}\b/g;
             let googleMatch;
             while ((googleMatch = googleKeyRegex.exec(codigo)) !== null) {
+                const { line, snippet } = obtenerDetallesLinea(codigo, googleMatch.index);
                 securityAlerts.push({
                     type: 'secret_leak',
-                    message: `Posible fuga de Google/Firebase API Key detectada.`
+                    line,
+                    snippet,
+                    message: `Clave de API de Google / Firebase expuesta.`,
+                    risk: `Aunque algunas API keys de Firebase y Google Maps están diseñadas para uso en el cliente, exponer claves con permisos excesivos sin restricciones de origen (HTTP referrer) o de IPs permite a terceros consumirlas, generando costos imprevistos o acceso a datos de tus servicios de Google Cloud.`,
+                    recommendation: `Asegúrate de restringir esta API Key en la consola de Google Cloud Console (restringir por origen HTTP o tipo de API) y considera no harcodeala directamente si es una clave con permisos de escritura o administrativos.`
                 });
             }
 
             const slackKeyRegex = /\bxox[bapr]-[0-9]{12}-[0-9]{12}-[a-zA-Z0-9]{24}\b/g;
             let slackMatch;
             while ((slackMatch = slackKeyRegex.exec(codigo)) !== null) {
+                const { line, snippet } = obtenerDetallesLinea(codigo, slackMatch.index);
                 securityAlerts.push({
                     type: 'secret_leak',
-                    message: `Posible fuga de Slack Token detectada.`
+                    line,
+                    snippet,
+                    message: `Token de Slack detectado en el código fuente.`,
+                    risk: `Permite a usuarios no autorizados leer mensajes, publicar en canales o ejecutar acciones administrativas en tu espacio de trabajo de Slack, violando la privacidad corporativa.`,
+                    recommendation: `Mueve este token a variables de entorno confidenciales en el servidor y restringe el acceso al canal.`
                 });
             }
 
@@ -276,9 +357,14 @@ function obtenerGrafo(rutaProyecto) {
                 const lowerVal = valueMatched.toLowerCase();
                 const invalidPlaceholders = ['placeholder', 'password', 'passwd', 'secret', 'token', 'my-secret', 'mysecret', 'dummy', 'testkey', 'testsecret', 'jwtsecret', '12345678', 'abcdefgh'];
                 if (!invalidPlaceholders.includes(lowerVal) && !valueMatched.includes('${')) {
+                    const { line, snippet } = obtenerDetallesLinea(codigo, genericMatch.index);
                     securityAlerts.push({
                         type: 'secret_leak',
-                        message: `Posible secreto hardcodeado en la variable '${varName}'.`
+                        line,
+                        snippet,
+                        message: `Posible secreto hardcodeado en la variable '${varName}'.`,
+                        risk: `Almacenar secretos, tokens de autenticación o contraseñas en variables estáticas en el código facilita su descubrimiento mediante ingeniería inversa o análisis del historial del repositorio de código.`,
+                        recommendation: `Mueve el valor confidencial a variables de entorno (.env) de forma externa. Por ejemplo: const ${varName} = process.env.${varName.toUpperCase()};`
                     });
                 }
             }
@@ -291,49 +377,87 @@ function obtenerGrafo(rutaProyecto) {
                 while ((envMatch = envRegex.exec(codigo)) !== null) {
                     const envVar = envMatch[1];
                     if (!envVar.startsWith('NEXT_PUBLIC_') && envVar !== 'NODE_ENV') {
+                        const { line, snippet } = obtenerDetallesLinea(codigo, envMatch.index);
                         securityAlerts.push({
                             type: 'unsafe_env',
-                            message: `Variable de entorno de servidor 'process.env.${envVar}' expuesta en componente de cliente ('use client').`
+                            line,
+                            snippet,
+                            message: `Variable de entorno de servidor 'process.env.${envVar}' expuesta en componente del cliente ('use client').`,
+                            risk: `En Next.js, las variables de entorno sin el prefijo 'NEXT_PUBLIC_' están reservadas para el servidor. Usarlas en un componente del cliente ('use client') causará que Next.js incruste su valor real en los archivos de JavaScript estáticos que se envían al navegador del usuario, exponiendo claves secretas.`,
+                            recommendation: `Si esta variable es pública, añádele el prefijo 'NEXT_PUBLIC_${envVar}'. Si es confidencial (como una clave de API secreta), muévela a una Server Action o a una API Route en el servidor.`
                         });
                     }
                 }
             }
 
             // Detección de Funciones Inseguras y Smells de Inyección (XSS / Código Dinámico)
-            if (/\bdangerouslySetInnerHTML\b/.test(codigo)) {
+            const dangerousHtmlRegex = /\bdangerouslySetInnerHTML\b/g;
+            let dangerousHtmlMatch;
+            while ((dangerousHtmlMatch = dangerousHtmlRegex.exec(codigo)) !== null) {
+                const { line, snippet } = obtenerDetallesLinea(codigo, dangerousHtmlMatch.index);
                 securityAlerts.push({
                     type: 'unsafe_smell',
-                    message: `Uso de 'dangerouslySetInnerHTML' detectado (Riesgo potencial de Cross-Site Scripting - XSS si el contenido no se sanitiza).`
+                    line,
+                    snippet,
+                    message: `Uso detectado de 'dangerouslySetInnerHTML'.`,
+                    risk: `Esta propiedad de React inserta HTML sin sanitizar directamente en el DOM. Si los datos provienen de entradas del usuario, APIs externas o fuentes no confiables, un atacante podría inyectar scripts maliciosos (XSS) que robarían sesiones de usuario o cookies.`,
+                    recommendation: `Sanitiza el contenido HTML antes de pasarlo a dangerouslySetInnerHTML utilizando una librería de confianza como 'dompurify' (por ejemplo: DOMPurify.sanitize(dirtyHtml)).`
                 });
             }
 
-            if (/\beval\s*\(/.test(codigo)) {
+            const evalRegex = /\beval\s*\(/g;
+            let evalMatch;
+            while ((evalMatch = evalRegex.exec(codigo)) !== null) {
+                const { line, snippet } = obtenerDetallesLinea(codigo, evalMatch.index);
                 securityAlerts.push({
                     type: 'unsafe_smell',
-                    message: `Uso de 'eval()' detectado (Ejecución de código arbitrario altamente insegura).`
+                    line,
+                    snippet,
+                    message: `Uso detectado de la función extremadamente insegura 'eval()'.`,
+                    risk: `La función 'eval()' ejecuta un string como código JavaScript dentro del contexto local. Si se pasa cualquier entrada influenciada por el usuario o de fuentes externas a eval(), se permite la Ejecución Remota de Código (RCE) en el cliente. Además, eval() destruye las optimizaciones del compilador JS y afecta gravemente al rendimiento.`,
+                    recommendation: `Elimina por completo el uso de 'eval()'. Utiliza estructuras de control de flujo seguras (como diccionarios de funciones o JSON.parse si estás deserializando datos).`
                 });
             }
 
-            if (/\bnew\s+Function\s*\(/.test(codigo)) {
+            const newFunctionRegex = /\bnew\s+Function\s*\(/g;
+            let newFunctionMatch;
+            while ((newFunctionMatch = newFunctionRegex.exec(codigo)) !== null) {
+                const { line, snippet } = obtenerDetallesLinea(codigo, newFunctionMatch.index);
                 securityAlerts.push({
                     type: 'unsafe_smell',
-                    message: `Constructor 'new Function()' detectado (Ejecución de código dinámica e insegura).`
+                    line,
+                    snippet,
+                    message: `Constructor dinámico 'new Function()' detectado.`,
+                    risk: `Al igual que 'eval()', el constructor de funciones dinámicas 'new Function(code)' compila y ejecuta código en tiempo de ejecución, abriendo vulnerabilidades graves de inyección de código si el string recibido contiene variables dinámicas externas.`,
+                    recommendation: `Evita la generación de funciones a partir de strings. Reescribe la lógica usando funciones estándar de JS o callbacks estructurados.`
                 });
             }
 
-            if (/\bdocument\.write(?:ln)?\s*\(/.test(codigo)) {
+            const docWriteRegex = /\bdocument\.write(?:ln)?\s*\(/g;
+            let docWriteMatch;
+            while ((docWriteMatch = docWriteRegex.exec(codigo)) !== null) {
+                const { line, snippet } = obtenerDetallesLinea(codigo, docWriteMatch.index);
                 securityAlerts.push({
                     type: 'unsafe_smell',
-                    message: `Uso de 'document.write()' detectado (Práctica obsoleta e insegura de inyección DOM).`
+                    line,
+                    snippet,
+                    message: `Uso obsoleto e inseguro de 'document.write()'.`,
+                    risk: `Esta llamada inyecta código directamente al buffer de renderizado del DOM de forma síncrona. Además de causar problemas de inyección XSS, puede bloquear la carga de la página web entera en conexiones lentas y está desaconsejada en la especificación moderna de HTML.`,
+                    recommendation: `Reemplaza 'document.write()' usando manipulación de DOM moderna de React (modificar el estado para renderizar componentes) o métodos seguros nativos como 'document.createElement' y 'element.textContent'.`
                 });
             }
 
             const timerRegex = /\b(setTimeout|setInterval)\s*\(\s*["'`]/g;
             let timerMatch;
             while ((timerMatch = timerRegex.exec(codigo)) !== null) {
+                const { line, snippet } = obtenerDetallesLinea(codigo, timerMatch.index);
                 securityAlerts.push({
                     type: 'unsafe_smell',
-                    message: `Llamada a '${timerMatch[1]}' con un string literal (Funciona como eval e incrementa riesgos de inyección).`
+                    line,
+                    snippet,
+                    message: `Llamada a '${timerMatch[1]}' utilizando un string literal de código.`,
+                    risk: `Pasar un string en lugar de una función callback a setTimeout/setInterval (por ejemplo: setTimeout("alert(1)", 100)) obliga al motor de JavaScript a interpretar dinámicamente el string usando la función 'eval()', lo que hereda todos los riesgos de inyección y lentitud de esta última.`,
+                    recommendation: `Pasa siempre una función callback anónima o una referencia a función directa. Ejemplo: setTimeout(() => alert(1), 100).`
                 });
             }
 
@@ -370,7 +494,9 @@ function obtenerGrafo(rutaProyecto) {
                 if (status === 'exposed') {
                     securityAlerts.push({
                         type: 'route_exposure',
-                        message: `Superficie de Ataque: Ruta expuesta sin chequeo de autenticación en este archivo. Asegúrate de protegerla en middleware.ts.`
+                        message: `Ruta de Next.js expuesta de manera pública en este archivo.`,
+                        risk: `Este archivo representa una página o endpoint de API que no contiene referencias visibles o directas a comprobaciones de autenticación o sesión (como getServerSession, useSession, etc.). Si esta ruta expone datos confidenciales, cualquier usuario anónimo podría acceder a ella.`,
+                        recommendation: `Asegúrate de que esta ruta esté protegida de forma centralizada en tu archivo 'middleware.ts', o bien implementa una verificación de sesión directa en este archivo antes de retornar datos o JSX.`
                     });
                 }
             }
@@ -467,7 +593,9 @@ function obtenerGrafo(rutaProyecto) {
                     hasSecurity = true;
                     securityAlerts = [{
                         type: 'npm_vulnerability',
-                        message: `Dependencia crítica '${foundVulnerability.package}' (${foundVulnerability.declared}) vulnerable: ${foundVulnerability.risk}`
+                        message: `Vulnerabilidad detectada en dependencia npm: '${foundVulnerability.package}' (${foundVulnerability.declared})`,
+                        risk: foundVulnerability.risk,
+                        recommendation: `Actualiza la dependencia '${foundVulnerability.package}' en tu 'package.json' a la versión recomendada y ejecuta 'npm install' o 'pnpm install' para aplicar los cambios.`
                     }];
                 }
             }

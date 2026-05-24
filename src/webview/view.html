@@ -14,129 +14,188 @@
     <div id="column-headers"></div>
 
     <div id="legend">
-        <div class="legend-title">Capas de Arquitectura</div>
-        <div class="legend-item">
-            <span class="color-box domain"></span>
-            <span>Dominio (Tipos/Modelos)</span>
+        <div class="panel-header" id="legend-header">
+            <span class="legend-title">Capas de Arquitectura</span>
+            <button class="toggle-panel-btn" id="toggle-legend-btn" title="Minimizar panel">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+            </button>
         </div>
-        <div class="legend-item">
-            <span class="color-box data"></span>
-            <span>Infraestructura (Datos/API/Utils)</span>
-        </div>
-        <div class="legend-item">
-            <span class="color-box hooks"></span>
-            <span>Aplicación (Custom Hooks)</span>
-        </div>
-        <div class="legend-item">
-            <span class="color-box logic"></span>
-            <span>Negocio (Estado/Contexto)</span>
-        </div>
-        <div class="legend-item">
-            <span class="color-box presentation"></span>
-            <span>Presentación (UI/Componentes)</span>
-        </div>
-        <div class="legend-item">
-            <span class="color-box external"></span>
-            <span>Módulos Externos (npm)</span>
-        </div>
-        <div class="legend-item">
-            <span class="color-box asset"></span>
-            <span>Recursos (Assets/Styles/JSON)</span>
-        </div>
-        <div class="legend-item">
-            <span class="color-box missing"></span>
-            <span>Importación Faltante</span>
-        </div>
-        <div class="legend-item">
-            <span class="color-box" style="border: 2px dashed #ff9f1c; background-color: transparent;"></span>
-            <span>Participa en Ciclo Circular</span>
-        </div>
-        <div class="legend-item">
-            <span class="color-box" style="border: 2px dashed #ff9f1c; background-color: #222;"></span>
-            <span>Código Muerto / Archivo Huérfano</span>
-        </div>
-        <div class="legend-item">
-            <span class="color-box" style="border: 2px solid #d00000; background-color: transparent; box-shadow: 0 0 6px #d00000;"></span>
-            <span>Alta Complejidad / God File</span>
-        </div>
-        <div class="legend-item">
-            <span class="color-box" style="border: 2px solid #ff3c38; background-color: transparent; box-shadow: 0 0 6px #ff3c38;"></span>
-            <span>Riesgo de Seguridad / Fuga de Secretos</span>
+        <div class="panel-body" id="legend-body">
+            <div class="legend-item">
+                <span class="color-box domain"></span>
+                <span>Dominio (Tipos/Modelos)</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box data"></span>
+                <span>Infraestructura (Datos/API/Utils)</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box hooks"></span>
+                <span>Aplicación (Custom Hooks)</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box logic"></span>
+                <span>Negocio (Estado/Contexto)</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box presentation"></span>
+                <span>Presentación (UI/Componentes)</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box external"></span>
+                <span>Módulos Externos (npm)</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box asset"></span>
+                <span>Recursos (Assets/Styles/JSON)</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box missing"></span>
+                <span>Importación Faltante</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box" style="border: 2px dashed #ff9f1c; background-color: transparent;"></span>
+                <span>Participa en Ciclo Circular</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box" style="border: 2px dashed #ff9f1c; background-color: #222;"></span>
+                <span>Código Muerto / Archivo Huérfano</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box" style="border: 2px solid #d00000; background-color: transparent; box-shadow: 0 0 6px #d00000;"></span>
+                <span>Alta Complejidad / God File</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box" style="border: 2px solid #ff3c38; background-color: transparent; box-shadow: 0 0 6px #ff3c38;"></span>
+                <span>Riesgo de Seguridad / Fuga de Secretos</span>
+            </div>
         </div>
     </div>
 
     <div id="controls">
-        <div class="control-section">
-            <label for="search-input" class="control-label">Buscar Archivo</label>
-            <input type="text" id="search-input" placeholder="Buscar por nombre..." autocomplete="off" />
+        <div class="panel-header" id="controls-header">
+            <span class="control-label" style="margin: 0; font-size: 11px;">Controles & Inspector</span>
+            <button class="toggle-panel-btn" id="toggle-controls-btn" title="Minimizar panel">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+            </button>
         </div>
-        <div class="control-section">
-            <span class="control-label">Filtros</span>
-            <div class="checkbox-group">
-                <label><input type="checkbox" id="toggle-external" checked> Mostrar Módulos Externos</label>
-                <label><input type="checkbox" id="toggle-missing" checked> Mostrar Faltantes</label>
-                <label><input type="checkbox" id="toggle-cluster"> Agrupar por Capas</label>
-                <label><input type="checkbox" id="toggle-cycles"> Resaltar Ciclos</label>
-                <label><input type="checkbox" id="toggle-deadcode"> Resaltar Código Muerto</label>
-                <label><input type="checkbox" id="toggle-godfiles"> Resaltar God Files</label>
-                <label><input type="checkbox" id="toggle-security"> Auditoría de Seguridad</label>
+        <div class="panel-body" id="controls-body">
+            <div class="control-section" style="border-bottom: 1px solid var(--vscode-sideBar-border, rgba(255,255,255,0.1)); padding-bottom: 12px; margin-bottom: 4px;">
+                <button class="blast-btn" id="export-md-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; background-color: #3a86f8; font-weight: 700; color: #fff;" title="Generar plano de arquitectura en Markdown para alimentar a asistentes de IA en la raíz del proyecto">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    <span>Exportar Arquitectura (IA)</span>
+                </button>
             </div>
-        </div>
-        <div class="control-section">
-            <span class="control-label">Fuerzas del Grafo</span>
-            <div class="slider-group">
-                <div class="slider-item">
-                    <div class="slider-val-label">
-                        <span>Repulsión:</span>
-                        <span id="charge-val">-400</span>
-                    </div>
-                    <input type="range" id="charge-slider" min="-1000" max="-100" value="-400" step="50" />
-                </div>
-                <div class="slider-item">
-                    <div class="slider-val-label">
-                        <span>Distancia:</span>
-                        <span><span id="distance-val">140</span>px</span>
-                    </div>
-                    <input type="range" id="distance-slider" min="50" max="300" value="140" step="10" />
-                </div>
+            <div class="tabs-header">
+                <div class="tab-btn active" id="tab-filters">🎛️ Filtros</div>
+                <div class="tab-btn" id="tab-tech">💻 Tech Stack</div>
             </div>
-        </div>
 
-        <!-- Inspector de Nodo (oculto por defecto) -->
-        <div id="inspector" style="display: none;">
-            <span class="control-label">Inspector de Nodo</span>
-            <div id="inspector-content" style="width: 100%;">
-                <div id="inspector-node-details">
-                    <div class="inspector-filename" id="ins-name"></div>
-                    <div class="inspector-path" id="ins-path"></div>
-                    <div class="inspector-detail" id="ins-layer"></div>
-                    <div class="inspector-detail" id="ins-size"></div>
-                    
-                    <!-- Contenedor para alerta de infracción de arquitectura -->
-                    <div id="inspector-violation"></div>
-                    
-                    <!-- Contenedor para alerta de dependencia circular -->
-                    <div id="inspector-cycle"></div>
-                    
-                    <!-- Contenedor para análisis de impacto -->
-                    <div id="inspector-blast"></div>
-                    
-                    <!-- Contenedor para alerta de código muerto -->
-                    <div id="inspector-deadcode"></div>
-                    
-                    <!-- Contenedor para alerta de god file -->
-                    <div id="inspector-godfile"></div>
-                    
-                    <!-- Contenedor para alerta de seguridad -->
-                    <div id="inspector-security"></div>
-                    
-                    <div class="inspector-subtitle">Dependencias (<span id="ins-out-count">0</span>)</div>
-                    <div class="inspector-list" id="ins-out-list"></div>
-                    
-                    <div class="inspector-subtitle">Dependientes (<span id="ins-in-count">0</span>)</div>
-                    <div class="inspector-list" id="ins-in-list"></div>
+            <div id="filters-panel">
+                <div class="control-section">
+                    <label for="search-input" class="control-label">Buscar Archivo</label>
+                    <input type="text" id="search-input" placeholder="Buscar por nombre..." autocomplete="off" />
                 </div>
-                <div id="inspector-general-report" style="display: none;"></div>
+                <div class="control-section">
+                    <span class="control-label">Filtros</span>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="toggle-external" checked> Mostrar Módulos Externos</label>
+                        <label><input type="checkbox" id="toggle-missing" checked> Mostrar Faltantes</label>
+                        <label><input type="checkbox" id="toggle-cluster"> Agrupar por Capas</label>
+                        <label><input type="checkbox" id="toggle-cycles"> Resaltar Ciclos</label>
+                        <label><input type="checkbox" id="toggle-deadcode"> Resaltar Código Muerto</label>
+                        <label><input type="checkbox" id="toggle-godfiles"> Resaltar God Files</label>
+                        <label><input type="checkbox" id="toggle-security"> Auditoría de Seguridad</label>
+                    </div>
+                </div>
+                <div class="control-section">
+                    <span class="control-label">Fuerzas del Grafo</span>
+                    <div class="slider-group">
+                        <div class="slider-item">
+                            <div class="slider-val-label">
+                                <span>Repulsión:</span>
+                                <span id="charge-val">-400</span>
+                            </div>
+                            <input type="range" id="charge-slider" min="-1000" max="-100" value="-400" step="50" />
+                        </div>
+                        <div class="slider-item">
+                            <div class="slider-val-label">
+                                <span>Distancia:</span>
+                                <span><span id="distance-val">140</span>px</span>
+                            </div>
+                            <input type="range" id="distance-slider" min="50" max="300" value="140" step="10" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tech-stack-panel" style="display: none;">
+                <div class="tech-card">
+                    <div class="tech-label">🌐 Framework / Core</div>
+                    <div class="tech-value" id="tech-framework">React (Cliente)</div>
+                </div>
+                <div class="tech-card">
+                    <div class="tech-label">🧠 Estado Local</div>
+                    <div class="tech-value" id="tech-state-local">React Context / State</div>
+                </div>
+                <div class="tech-card">
+                    <div class="tech-label">☁️ Estado Servidor / Fetch</div>
+                    <div class="tech-value" id="tech-state-server">Fetch API / Nativo</div>
+                </div>
+                <div class="tech-card">
+                    <div class="tech-label">🛡️ Validación / Tipos</div>
+                    <div class="tech-value" id="tech-validation">TypeScript</div>
+                </div>
+                <div class="tech-card">
+                    <div class="tech-label">🎨 Estilos / CSS</div>
+                    <div class="tech-value" id="tech-styling">CSS nativo</div>
+                </div>
+                <div class="tech-card">
+                    <div class="tech-label">📝 Formularios</div>
+                    <div class="tech-value" id="tech-forms">Formularios nativos</div>
+                </div>
+                <div class="tech-card">
+                    <div class="tech-label">🧩 Componentes UI</div>
+                    <div class="tech-value" id="tech-ui">Ninguno</div>
+                </div>
+            </div>
+
+            <!-- Inspector de Nodo (oculto por defecto) -->
+            <div id="inspector" style="display: none;">
+                <span class="control-label">Inspector de Nodo</span>
+                <div id="inspector-content" style="width: 100%;">
+                    <div id="inspector-node-details">
+                        <div class="inspector-filename" id="ins-name"></div>
+                        <div class="inspector-path" id="ins-path"></div>
+                        <div class="inspector-detail" id="ins-layer"></div>
+                        <div class="inspector-detail" id="ins-size"></div>
+                        
+                        <!-- Contenedor para alerta de infracción de arquitectura -->
+                        <div id="inspector-violation"></div>
+                        
+                        <!-- Contenedor para alerta de dependencia circular -->
+                        <div id="inspector-cycle"></div>
+                        
+                        <!-- Contenedor para análisis de impacto -->
+                        <div id="inspector-blast"></div>
+                        
+                        <!-- Contenedor para alerta de código muerto -->
+                        <div id="inspector-deadcode"></div>
+                        
+                        <!-- Contenedor para alerta de god file -->
+                        <div id="inspector-godfile"></div>
+                        
+                        <!-- Contenedor para alerta de seguridad -->
+                        <div id="inspector-security"></div>
+                        
+                        <div class="inspector-subtitle">Dependencias (<span id="ins-out-count">0</span>)</div>
+                        <div class="inspector-list" id="ins-out-list"></div>
+                        
+                        <div class="inspector-subtitle">Dependientes (<span id="ins-in-count">0</span>)</div>
+                        <div class="inspector-list" id="ins-in-list"></div>
+                    </div>
+                    <div id="inspector-general-report" style="display: none;"></div>
+                </div>
             </div>
         </div>
     </div>

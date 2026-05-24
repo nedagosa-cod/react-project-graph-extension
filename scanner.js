@@ -38,7 +38,24 @@ function obtenerGrafo(rutaProyecto) {
     };
 
     // Auditar package.json
-    const packageJsonPath = path.join(rutaProyecto, 'package.json');
+    let packageJsonPath = path.join(rutaProyecto, 'package.json');
+    if (!fs.existsSync(packageJsonPath)) {
+        try {
+            const items = fs.readdirSync(rutaProyecto);
+            for (const item of items) {
+                const subPath = path.join(rutaProyecto, item);
+                if (fs.statSync(subPath).isDirectory() && !['node_modules', '.git', '.vscode', '.next', 'dist', 'build'].includes(item)) {
+                    const candidate = path.join(subPath, 'package.json');
+                    if (fs.existsSync(candidate)) {
+                        packageJsonPath = candidate;
+                        break;
+                    }
+                }
+            }
+        } catch (e) {
+            // Ignorar errores de lectura
+        }
+    }
     if (fs.existsSync(packageJsonPath)) {
         try {
             const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));

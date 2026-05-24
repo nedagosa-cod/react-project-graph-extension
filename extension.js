@@ -276,6 +276,22 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
             gap: 16px;
             pointer-events: auto;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+
+        #controls::-webkit-scrollbar {
+            width: 6px;
+        }
+        #controls::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #controls::-webkit-scrollbar-thumb {
+            background: var(--vscode-sideBar-border, rgba(255, 255, 255, 0.15));
+            border-radius: 3px;
+        }
+        #controls::-webkit-scrollbar-thumb:hover {
+            background: var(--vscode-button-background, #7b2cbf);
         }
         .control-section {
             display: flex;

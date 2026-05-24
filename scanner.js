@@ -140,6 +140,7 @@ function obtenerGrafo(rutaProyecto) {
         }
 
         let exportName = null;
+        const securityAlerts = [];
         if (codigo) {
             // 1. Buscar 'export default [async] function Nombre'
             const matchFunction = /export\s+default\s+(?:async\s+)?function\s+([A-Za-z0-9_$]+)/.exec(codigo);
@@ -158,6 +159,75 @@ function obtenerGrafo(rutaProyecto) {
                     }
                 }
             }
+
+            // Detección de Secretos Hardcodeados
+            const awsAccessKeyRegex = /\bAKIA[0-9A-Z]{16}\b/g;
+            let awsMatch;
+            while ((awsMatch = awsAccessKeyRegex.exec(codigo)) !== null) {
+                securityAlerts.push({
+                    type: 'secret_leak',
+                    message: `Posible fuga de clave de acceso AWS (AWS Access Key ID) detectada.`
+                });
+            }
+
+            const stripeKeyRegex = /\bsk_(?:live|test)_[0-9a-zA-Z]{24}\b/g;
+            let stripeMatch;
+            while ((stripeMatch = stripeKeyRegex.exec(codigo)) !== null) {
+                securityAlerts.push({
+                    type: 'secret_leak',
+                    message: `Posible fuga de API Key de Stripe (Secret Key) detectada.`
+                });
+            }
+
+            const googleKeyRegex = /\bAIza[0-9A-Za-z-_]{35}\b/g;
+            let googleMatch;
+            while ((googleMatch = googleKeyRegex.exec(codigo)) !== null) {
+                securityAlerts.push({
+                    type: 'secret_leak',
+                    message: `Posible fuga de Google/Firebase API Key detectada.`
+                });
+            }
+
+            const slackKeyRegex = /\bxox[bapr]-[0-9]{12}-[0-9]{12}-[a-zA-Z0-9]{24}\b/g;
+            let slackMatch;
+            while ((slackMatch = slackKeyRegex.exec(codigo)) !== null) {
+                securityAlerts.push({
+                    type: 'secret_leak',
+                    message: `Posible fuga de Slack Token detectada.`
+                });
+            }
+
+            // Variables de asignación genéricas con nombres críticos (token, secret, key, password)
+            const genericKeyRegex = /(?:const|let|var)\s+([a-zA-Z0-9_$]*(?:key|secret|token|password|passwd|auth|jwt|credential|private|cert)[a-zA-Z0-9_$]*)\s*=\s*["'`]([^"'`\s$]{8,})["'`]/ig;
+            let genericMatch;
+            while ((genericMatch = genericKeyRegex.exec(codigo)) !== null) {
+                const varName = genericMatch[1];
+                const valueMatched = genericMatch[2];
+                const lowerVal = valueMatched.toLowerCase();
+                const invalidPlaceholders = ['placeholder', 'password', 'passwd', 'secret', 'token', 'my-secret', 'mysecret', 'dummy', 'testkey', 'testsecret', 'jwtsecret', '12345678', 'abcdefgh'];
+                if (!invalidPlaceholders.includes(lowerVal) && !valueMatched.includes('${')) {
+                    securityAlerts.push({
+                        type: 'secret_leak',
+                        message: `Posible secreto hardcodeado en la variable '${varName}'.`
+                    });
+                }
+            }
+
+            // Detección de Next.js Server Environment Variables en Componentes del Cliente
+            const isClientComponent = codigo.includes('"use client"') || codigo.includes("'use client'");
+            if (isClientComponent) {
+                const envRegex = /process\.env\.([A-Za-z0-9_]+)/g;
+                let envMatch;
+                while ((envMatch = envRegex.exec(codigo)) !== null) {
+                    const envVar = envMatch[1];
+                    if (!envVar.startsWith('NEXT_PUBLIC_') && envVar !== 'NODE_ENV') {
+                        securityAlerts.push({
+                            type: 'unsafe_env',
+                            message: `Variable de entorno de servidor 'process.env.${envVar}' expuesta en componente de cliente ('use client').`
+                        });
+                    }
+                }
+            }
         }
 
         grafo.nodes.push({ 
@@ -168,6 +238,8 @@ function obtenerGrafo(rutaProyecto) {
             ext: ext,
             lines: lineas,
             exportName: exportName || null,
+            securityAlerts: securityAlerts.length > 0 ? securityAlerts : null,
+            hasSecurity: securityAlerts.length > 0,
             layer: capa
         });
 

@@ -616,6 +616,41 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
             margin-top: 4px;
             line-height: 1.35;
         }
+        
+        /* Estilos de Auditoría de Seguridad */
+        .nodo.security-highlight {
+            stroke: #ff3c38 !important;
+            stroke-width: 3.5px !important;
+            filter: drop-shadow(0 0 8px #ff3c38);
+            animation: security-pulse 1.8s infinite ease-in-out;
+        }
+        @keyframes security-pulse {
+            0% { filter: drop-shadow(0 0 4px #ff3c38); }
+            50% { filter: drop-shadow(0 0 12px #ff3c38); }
+            100% { filter: drop-shadow(0 0 4px #ff3c38); }
+        }
+        #inspector-security {
+            background: rgba(255, 60, 56, 0.12);
+            border: 1px solid #ff3c38;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-top: 8px;
+            color: #ffd6d6;
+            font-size: 11px;
+            display: none;
+        }
+        .security-alert-title {
+            font-weight: 700;
+            color: #ff3c38;
+            margin-bottom: 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .security-alert-detail {
+            margin-top: 4px;
+            line-height: 1.35;
+        }
     </style>
 </head>
 <body>
@@ -669,6 +704,10 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
             <span class="color-box" style="border: 2px solid #d00000; background-color: transparent; box-shadow: 0 0 6px #d00000;"></span>
             <span>Alta Complejidad / God File</span>
         </div>
+        <div class="legend-item">
+            <span class="color-box" style="border: 2px solid #ff3c38; background-color: transparent; box-shadow: 0 0 6px #ff3c38;"></span>
+            <span>Riesgo de Seguridad / Fuga de Secretos</span>
+        </div>
     </div>
 
     <div id="controls">
@@ -685,6 +724,7 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                 <label><input type="checkbox" id="toggle-cycles"> Resaltar Ciclos</label>
                 <label><input type="checkbox" id="toggle-deadcode"> Resaltar Código Muerto</label>
                 <label><input type="checkbox" id="toggle-godfiles"> Resaltar God Files</label>
+                <label><input type="checkbox" id="toggle-security"> Auditoría de Seguridad</label>
             </div>
         </div>
         <div class="control-section">
@@ -731,6 +771,9 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     
                     <!-- Contenedor para alerta de god file -->
                     <div id="inspector-godfile"></div>
+                    
+                    <!-- Contenedor para alerta de seguridad -->
+                    <div id="inspector-security"></div>
                     
                     <div class="inspector-subtitle">Dependencias (<span id="ins-out-count">0</span>)</div>
                     <div class="inspector-list" id="ins-out-list"></div>
@@ -960,6 +1003,85 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
             }
         }
 
+        function mostrarReporteGeneralSeguridad() {
+            d3.select("#inspector").style("display", "flex");
+            d3.select("#inspector-node-details").style("display", "none");
+            
+            const reportContainer = d3.select("#inspector-general-report");
+            reportContainer.style("display", "block").html("");
+            
+            const nodosVulnerables = activeNodes.filter(n => n.hasSecurity);
+            
+            reportContainer.append("div")
+                .attr("class", "security-alert-title")
+                .style("font-size", "12px")
+                .style("margin-bottom", "6px")
+                .text("🛡️ Auditoría de Seguridad");
+                
+            reportContainer.append("div")
+                .style("font-size", "11px")
+                .style("color", "var(--vscode-sideBar-foreground, #ccc)")
+                .style("margin-bottom", "10px")
+                .text("Se detectaron " + nodosVulnerables.length + " archivos locales con riesgos de seguridad.");
+                
+            if (nodosVulnerables.length > 0) {
+                const listDiv = reportContainer.append("div")
+                    .style("max-height", "240px")
+                    .style("overflow-y", "auto")
+                    .style("display", "flex")
+                    .style("flex-direction", "column")
+                    .style("gap", "6px");
+                    
+                nodosVulnerables.forEach(n => {
+                    const itemDiv = listDiv.append("div")
+                        .style("display", "flex")
+                        .style("flex-direction", "column")
+                        .style("padding", "6px")
+                        .style("background", "rgba(255, 60, 56, 0.08)")
+                        .style("border", "1px solid rgba(255, 60, 56, 0.3)")
+                        .style("border-radius", "4px")
+                        .style("cursor", "pointer")
+                        .style("transition", "background 0.2s")
+                        .on("mouseover", function() { d3.select(this).style("background", "rgba(255, 60, 56, 0.15)"); })
+                        .on("mouseout", function() { d3.select(this).style("background", "rgba(255, 60, 56, 0.08)"); })
+                        .on("click", (e) => {
+                            e.stopPropagation();
+                            handleNodeClick(e, n);
+                        });
+                        
+                    const header = itemDiv.append("div")
+                        .style("display", "flex")
+                        .style("justify-content", "space-between")
+                        .style("align-items", "center");
+                        
+                    header.append("span")
+                        .style("font-weight", "600")
+                        .style("color", "#ff4d4d")
+                        .style("font-size", "11px")
+                        .text(n.name);
+                        
+                    header.append("span")
+                        .style("font-weight", "700")
+                        .style("font-size", "10px")
+                        .style("color", "#ff4d4d")
+                        .text((n.securityAlerts ? n.securityAlerts.length : 0) + " alerta(s)");
+                        
+                    itemDiv.append("span")
+                        .style("font-size", "9px")
+                        .style("color", "var(--vscode-descriptionForeground, #888)")
+                        .style("margin-top", "2px")
+                        .style("word-break", "break-all")
+                        .text(n.id);
+                });
+            } else {
+                reportContainer.append("div")
+                    .style("font-size", "11px")
+                    .style("color", "#2ec4b6")
+                    .style("font-weight", "600")
+                    .text("🎉 ¡Excelente! No se detectaron riesgos de seguridad.");
+            }
+        }
+
         // Configuración de visualización de Capas
         const capaEspanol = {
             'domain': 'Dominio (Tipos/Modelos)',
@@ -1111,6 +1233,7 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
             const highlightCycles = d3.select("#toggle-cycles").property("checked");
             const highlightDead = d3.select("#toggle-deadcode").property("checked");
             const highlightGod = d3.select("#toggle-godfiles").property("checked");
+            const highlightSecurity = d3.select("#toggle-security").property("checked");
 
             activeNodes = data.nodes.filter(n => {
                 if (n.type === 'external' && !showExternal) return false;
@@ -1171,7 +1294,8 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     .classed("impacted", n => impactedNodesSet.has(n.id))
                     .classed("cycle-highlight", false)
                     .classed("dead-highlight", false)
-                    .classed("god-highlight", false);
+                    .classed("god-highlight", false)
+                    .classed("security-highlight", false);
 
                 label.style("opacity", n => n.id === activeBlastSource || impactedNodesSet.has(n.id) ? 1 : 0.08);
 
@@ -1189,7 +1313,8 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                 node.classed("impact-source", false).classed("impacted", false)
                     .classed("cycle-highlight", false)
                     .classed("dead-highlight", n => esCodigoMuerto(n))
-                    .classed("god-highlight", false);
+                    .classed("god-highlight", false)
+                    .classed("security-highlight", false);
                 link.classed("impact-path", false).classed("cycle", false);
 
                 node.style("opacity", n => esCodigoMuerto(n) ? 1.0 : 0.1);
@@ -1199,14 +1324,26 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                 node.classed("impact-source", false).classed("impacted", false)
                     .classed("cycle-highlight", false)
                     .classed("dead-highlight", false)
-                    .classed("god-highlight", n => calcularMetricasGod(n).esGod);
+                    .classed("god-highlight", n => calcularMetricasGod(n).esGod)
+                    .classed("security-highlight", false);
                 link.classed("impact-path", false).classed("cycle", false);
 
                 node.style("opacity", n => calcularMetricasGod(n).esGod ? 1.0 : 0.15);
                 label.style("opacity", n => calcularMetricasGod(n).esGod ? 1.0 : 0.15);
                 link.style("opacity", 0.05);
+            } else if (highlightSecurity) {
+                node.classed("impact-source", false).classed("impacted", false)
+                    .classed("cycle-highlight", false)
+                    .classed("dead-highlight", false)
+                    .classed("god-highlight", false)
+                    .classed("security-highlight", n => n.hasSecurity);
+                link.classed("impact-path", false).classed("cycle", false);
+
+                node.style("opacity", n => n.hasSecurity ? 1.0 : 0.1);
+                label.style("opacity", n => n.hasSecurity ? 1.0 : 0.1);
+                link.style("opacity", 0.02);
             } else {
-                node.classed("impact-source", false).classed("impacted", false).classed("dead-highlight", false).classed("god-highlight", false);
+                node.classed("impact-source", false).classed("impacted", false).classed("dead-highlight", false).classed("god-highlight", false).classed("security-highlight", false);
                 link.classed("impact-path", false);
 
                 if (highlightCycles) {
@@ -1245,6 +1382,8 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     mostrarReporteGeneralCodigoMuerto();
                 } else if (highlightGod) {
                     mostrarReporteGeneralGodFiles();
+                } else if (highlightSecurity) {
+                    mostrarReporteGeneralSeguridad();
                 } else {
                     d3.select("#inspector").style("display", "none");
                 }
@@ -1288,9 +1427,47 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
         d3.select("#toggle-external").on("change", render);
         d3.select("#toggle-missing").on("change", render);
         d3.select("#toggle-cluster").on("change", render);
-        d3.select("#toggle-cycles").on("change", render);
-        d3.select("#toggle-deadcode").on("change", render);
-        d3.select("#toggle-godfiles").on("change", render);
+        
+        d3.select("#toggle-cycles").on("change", function() {
+            if (this.checked) {
+                d3.select("#toggle-deadcode").property("checked", false);
+                d3.select("#toggle-godfiles").property("checked", false);
+                d3.select("#toggle-security").property("checked", false);
+            }
+            deselectNode();
+            render();
+        });
+        
+        d3.select("#toggle-deadcode").on("change", function() {
+            if (this.checked) {
+                d3.select("#toggle-cycles").property("checked", false);
+                d3.select("#toggle-godfiles").property("checked", false);
+                d3.select("#toggle-security").property("checked", false);
+            }
+            deselectNode();
+            render();
+        });
+        
+        d3.select("#toggle-godfiles").on("change", function() {
+            if (this.checked) {
+                d3.select("#toggle-cycles").property("checked", false);
+                d3.select("#toggle-deadcode").property("checked", false);
+                d3.select("#toggle-security").property("checked", false);
+            }
+            deselectNode();
+            render();
+        });
+
+        d3.select("#toggle-security").on("change", function() {
+            if (this.checked) {
+                d3.select("#toggle-cycles").property("checked", false);
+                d3.select("#toggle-deadcode").property("checked", false);
+                d3.select("#toggle-godfiles").property("checked", false);
+            }
+            deselectNode();
+            render();
+        });
+        
         d3.select("#search-input").on("input", render);
 
         d3.select("#charge-slider").on("input", function() {
@@ -1352,6 +1529,7 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
             const highlightDead = d3.select("#toggle-deadcode").property("checked");
             const highlightGod = d3.select("#toggle-godfiles").property("checked");
             const highlightCycles = d3.select("#toggle-cycles").property("checked");
+            const highlightSecurity = d3.select("#toggle-security").property("checked");
 
             // Opacidades: resaltar este nodo y sus conexiones directas
             if (activeBlastSource) {
@@ -1378,7 +1556,8 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     .classed("cycle-highlight", false)
                     .classed("impact-source", false)
                     .classed("impacted", false)
-                    .classed("god-highlight", false);
+                    .classed("god-highlight", false)
+                    .classed("security-highlight", false);
                 label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1.0 : 0.1);
                 link.style("opacity", l => {
                     const sId = l.source?.id || l.source;
@@ -1395,7 +1574,8 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     .classed("cycle-highlight", false)
                     .classed("impact-source", false)
                     .classed("impacted", false)
-                    .classed("god-highlight", n => calcularMetricasGod(n).esGod);
+                    .classed("god-highlight", n => calcularMetricasGod(n).esGod)
+                    .classed("security-highlight", false);
                 label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1.0 : 0.15);
                 link.style("opacity", l => {
                     const sId = l.source?.id || l.source;
@@ -1406,8 +1586,26 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     const tId = l.target?.id || l.target;
                     return sId === d.id || tId === d.id;
                 });
+            } else if (highlightSecurity) {
+                node.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1.0 : 0.1)
+                    .classed("dead-highlight", false)
+                    .classed("cycle-highlight", false)
+                    .classed("impact-source", false)
+                    .classed("impacted", false)
+                    .classed("god-highlight", false)
+                    .classed("security-highlight", n => n.hasSecurity);
+                label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1.0 : 0.1);
+                link.style("opacity", l => {
+                    const sId = l.source?.id || l.source;
+                    const tId = l.target?.id || l.target;
+                    return sId === d.id || tId === d.id ? 0.95 : 0.02;
+                }).classed("highlighted", l => {
+                    const sId = l.source?.id || l.source;
+                    const tId = l.target?.id || l.target;
+                    return sId === d.id || tId === d.id;
+                });
             } else if (highlightCycles) {
-                node.classed("dead-highlight", false).classed("god-highlight", false);
+                node.classed("dead-highlight", false).classed("god-highlight", false).classed("security-highlight", false);
                 node.style("opacity", n => (n.id === d.id || esConectado(d.id, n.id)) && n.inCycle ? 1 : 0.1);
                 label.style("opacity", n => (n.id === d.id || esConectado(d.id, n.id)) && n.inCycle ? 1 : 0.1);
                 link.style("opacity", l => {
@@ -1416,7 +1614,7 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     return (sId === d.id || tId === d.id) && l.inCycle ? 0.95 : 0.05;
                 });
             } else {
-                node.classed("dead-highlight", false).classed("god-highlight", false);
+                node.classed("dead-highlight", false).classed("god-highlight", false).classed("security-highlight", false);
                 node.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1 : 0.15);
                 label.style("opacity", n => n.id === d.id || esConectado(d.id, n.id) ? 1 : 0.15);
                 
@@ -1488,6 +1686,18 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                 }
             } else {
                 godContainer.style("display", "none");
+            }
+
+            // Alerta de Seguridad para el nodo seleccionado
+            const securityContainer = d3.select("#inspector-security");
+            if (d.hasSecurity && d.securityAlerts && d.securityAlerts.length > 0) {
+                let html = '<div class="security-alert-title">⚠️ Riesgo de Seguridad Detectado</div>';
+                d.securityAlerts.forEach(alert => {
+                    html += '<div class="security-alert-detail">• ' + alert.message + '</div>';
+                });
+                securityContainer.style("display", "block").html(html);
+            } else {
+                securityContainer.style("display", "none");
             }
 
             // Alertas de violación de arquitectura para el nodo seleccionado (como origen/importador)
@@ -1660,12 +1870,15 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
             const highlightDead = d3.select("#toggle-deadcode").property("checked");
             const highlightGod = d3.select("#toggle-godfiles").property("checked");
             const highlightCycles = d3.select("#toggle-cycles").property("checked");
+            const highlightSecurity = d3.select("#toggle-security").property("checked");
             const searchQuery = d3.select("#search-input").property("value").toLowerCase().trim();
 
             if (highlightDead) {
                 mostrarReporteGeneralCodigoMuerto();
             } else if (highlightGod) {
                 mostrarReporteGeneralGodFiles();
+            } else if (highlightSecurity) {
+                mostrarReporteGeneralSeguridad();
             } else {
                 d3.select("#inspector").style("display", "none");
             }
@@ -1682,7 +1895,7 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                     return isImpactLink ? 0.95 : 0.02;
                 });
             } else if (highlightDead) {
-                node.classed("cycle-highlight", false).classed("impact-source", false).classed("impacted", false).classed("god-highlight", false);
+                node.classed("cycle-highlight", false).classed("impact-source", false).classed("impacted", false).classed("god-highlight", false).classed("security-highlight", false);
                 link.classed("cycle", false).classed("impact-path", false);
 
                 node.style("opacity", n => esCodigoMuerto(n) ? 1.0 : 0.1)
@@ -1690,22 +1903,30 @@ function obtenerHtmlWebview(grafo, nodoEnfocadoId) {
                 label.style("opacity", n => esCodigoMuerto(n) ? 1.0 : 0.1);
                 link.style("opacity", 0.02);
             } else if (highlightGod) {
-                node.classed("cycle-highlight", false).classed("impact-source", false).classed("impacted", false).classed("dead-highlight", false);
+                node.classed("cycle-highlight", false).classed("impact-source", false).classed("impacted", false).classed("dead-highlight", false).classed("security-highlight", false);
                 link.classed("cycle", false).classed("impact-path", false);
 
                 node.style("opacity", n => calcularMetricasGod(n).esGod ? 1.0 : 0.15)
                     .classed("god-highlight", n => calcularMetricasGod(n).esGod);
                 label.style("opacity", n => calcularMetricasGod(n).esGod ? 1.0 : 0.15);
                 link.style("opacity", 0.05);
+            } else if (highlightSecurity) {
+                node.classed("cycle-highlight", false).classed("impact-source", false).classed("impacted", false).classed("dead-highlight", false).classed("god-highlight", false);
+                link.classed("cycle", false).classed("impact-path", false);
+
+                node.style("opacity", n => n.hasSecurity ? 1.0 : 0.1)
+                    .classed("security-highlight", n => n.hasSecurity);
+                label.style("opacity", n => n.hasSecurity ? 1.0 : 0.1);
+                link.style("opacity", 0.02);
             } else if (highlightCycles) {
-                node.classed("dead-highlight", false).classed("god-highlight", false);
+                node.classed("dead-highlight", false).classed("god-highlight", false).classed("security-highlight", false);
                 node.style("opacity", n => n.inCycle ? 1 : 0.1)
                     .classed("cycle-highlight", n => n.inCycle);
                 label.style("opacity", n => n.inCycle ? 1 : 0.1);
                 link.style("opacity", l => l.inCycle ? 0.95 : 0.05)
                     .classed("cycle", l => l.inCycle);
             } else {
-                node.classed("cycle-highlight", false).classed("impact-source", false).classed("impacted", false).classed("dead-highlight", false).classed("god-highlight", false);
+                node.classed("cycle-highlight", false).classed("impact-source", false).classed("impacted", false).classed("dead-highlight", false).classed("god-highlight", false).classed("security-highlight", false);
                 link.classed("cycle", false).classed("impact-path", false);
                 node.style("opacity", 1);
                 label.style("opacity", 1).style("fill", "var(--vscode-descriptionForeground, #c9ada7)");

@@ -27,6 +27,10 @@ body {
 .nodo.hooks { fill: #ffb703; }
 .nodo.logic { fill: #ff006e; }
 .nodo.presentation { fill: #8338ec; }
+.nodo.models { fill: #3a86f8; }
+.nodo.infra { fill: #2ec4b6; }
+.nodo.services { fill: #ffb703; }
+.nodo.routers { fill: #8338ec; }
 .nodo.external { fill: #5c677d; }
 .nodo.asset { fill: #f77f00; }
 .nodo.missing {
@@ -133,6 +137,10 @@ body {
 .color-box.hooks { background-color: #ffb703; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
 .color-box.logic { background-color: #ff006e; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
 .color-box.presentation { background-color: #8338ec; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
+.color-box.models { background-color: #3a86f8; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
+.color-box.infra { background-color: #2ec4b6; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
+.color-box.services { background-color: #ffb703; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
+.color-box.routers { background-color: #8338ec; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
 .color-box.external { background-color: #5c677d; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
 .color-box.asset { background-color: #f77f00; border: 1px solid var(--vscode-editor-background, #1e1e1e); }
 .color-box.missing { background-color: #e63946; border: 1px dashed #ffb703; }

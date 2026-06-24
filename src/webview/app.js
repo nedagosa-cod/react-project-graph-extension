@@ -456,16 +456,29 @@
         }
 
         // Configuración de visualización de Capas
-        const capaEspanol = {
-            'domain': 'Dominio (Tipos/Modelos)',
-            'data': 'Infraestructura (Datos/API/Utils)',
-            'hooks': 'Aplicación (Custom Hooks)',
-            'logic': 'Negocio (Estado/Contexto)',
-            'presentation': 'Presentación (UI/Componentes)',
-            'external': 'Módulo Externo (npm)',
-            'missing': 'Importación Faltante',
-            'asset': 'Recurso / Asset'
-        };
+        let capaEspanol = {};
+        if (data.tipoEntorno === 'backend') {
+            capaEspanol = {
+                'models': 'Modelos (Entidades)',
+                'services': 'Servicios (Lógica de Negocio)',
+                'routers': 'Rutas / Controladores',
+                'infra': 'Infraestructura / Utilidades',
+                'external': 'Módulo Externo',
+                'missing': 'Importación Faltante',
+                'asset': 'Recurso / Configuración'
+            };
+        } else {
+            capaEspanol = {
+                'domain': 'Dominio (Tipos/Modelos)',
+                'data': 'Infraestructura (Datos/API/Utils)',
+                'hooks': 'Aplicación (Custom Hooks)',
+                'logic': 'Negocio (Estado/Contexto)',
+                'presentation': 'Presentación (UI/Componentes)',
+                'external': 'Módulo Externo (npm)',
+                'missing': 'Importación Faltante',
+                'asset': 'Recurso / Asset'
+            };
+        }
 
         const capaColores = {
             'domain': '#3a86f8',
@@ -473,31 +486,100 @@
             'hooks': '#ffb703',
             'logic': '#ff006e',
             'presentation': '#8338ec',
+            'models': '#3a86f8',
+            'services': '#ffb703',
+            'routers': '#8338ec',
+            'infra': '#2ec4b6',
             'external': '#5c677d',
             'missing': '#e63946',
             'asset': '#f77f00'
         };
 
-        const layerColumns = {
-            'external': 0.08,
-            'domain': 0.22,
-            'data': 0.36,
-            'hooks': 0.50,
-            'logic': 0.64,
-            'presentation': 0.78,
-            'asset': 0.92,
-            'missing': 0.92
-        };
+        let layerColumns = {};
+        if (data.tipoEntorno === 'backend') {
+            layerColumns = {
+                'external': 0.08,
+                'models': 0.22,
+                'services': 0.44,
+                'routers': 0.66,
+                'infra': 0.80,
+                'asset': 0.92,
+                'missing': 0.92
+            };
+        } else {
+            layerColumns = {
+                'external': 0.08,
+                'domain': 0.22,
+                'data': 0.36,
+                'hooks': 0.50,
+                'logic': 0.64,
+                'presentation': 0.78,
+                'asset': 0.92,
+                'missing': 0.92
+            };
+        }
 
-        const columnLabels = [
-            { name: 'Externo', x: 0.08 },
-            { name: 'Dominio', x: 0.22 },
-            { name: 'Infraestructura', x: 0.36 },
-            { name: 'Aplicación', x: 0.50 },
-            { name: 'Negocio', x: 0.64 },
-            { name: 'Presentación', x: 0.78 },
-            { name: 'Otros / Assets', x: 0.92 }
-        ];
+        let columnLabels = [];
+        if (data.tipoEntorno === 'backend') {
+            columnLabels = [
+                { name: 'Externo', x: 0.08 },
+                { name: 'Modelos', x: 0.22 },
+                { name: 'Servicios', x: 0.44 },
+                { name: 'Controladores', x: 0.66 },
+                { name: 'Infraestructura', x: 0.80 },
+                { name: 'Otros / Config', x: 0.92 }
+            ];
+        } else {
+            columnLabels = [
+                { name: 'Externo', x: 0.08 },
+                { name: 'Dominio', x: 0.22 },
+                { name: 'Infraestructura', x: 0.36 },
+                { name: 'Aplicación', x: 0.50 },
+                { name: 'Negocio', x: 0.64 },
+                { name: 'Presentación', x: 0.78 },
+                { name: 'Otros / Assets', x: 0.92 }
+            ];
+        }
+
+        // UPDATE UI DOM DEPENDING ON ENVIRONMENT
+        if (data.tipoEntorno === 'backend') {
+            const legendBody = d3.select("#legend-body");
+            legendBody.html(""); // clear legend
+            Object.keys(capaEspanol).forEach(layer => {
+                const item = legendBody.append("div").attr("class", "legend-item");
+                item.append("span").attr("class", "color-box " + layer).style("background-color", capaColores[layer]);
+                item.append("span").text(capaEspanol[layer]);
+            });
+            // Add static legend items
+            legendBody.append("div").attr("class", "legend-item").html('<span class="color-box" style="border: 2px dashed #ff9f1c; background-color: transparent;"></span><span>Participa en Ciclo Circular</span>');
+            legendBody.append("div").attr("class", "legend-item").html('<span class="color-box" style="border: 2px dashed #ff9f1c; background-color: #222;"></span><span>Código Muerto / Archivo Huérfano</span>');
+            legendBody.append("div").attr("class", "legend-item").html('<span class="color-box" style="border: 2px solid #d00000; background-color: transparent; box-shadow: 0 0 6px #d00000;"></span><span>Alta Complejidad / God File</span>');
+            legendBody.append("div").attr("class", "legend-item").html('<span class="color-box" style="border: 2px solid #ff3c38; background-color: transparent; box-shadow: 0 0 6px #ff3c38;"></span><span>Riesgo de Seguridad / Fuga de Secretos</span>');
+
+            const techStackPanel = d3.select("#tech-stack-panel");
+            techStackPanel.html(""); // clear tech stack
+            const stack = data.techStack || {};
+            
+            const addTech = (icon, label, value) => {
+                const card = techStackPanel.append("div").attr("class", "tech-card");
+                card.append("div").attr("class", "tech-label").text(icon + " " + label);
+                card.append("div").attr("class", "tech-value").text(value || "N/A");
+            };
+            addTech("🌐", "Framework Backend", stack.framework);
+            addTech("🗄️", "ORM / Base de Datos", stack.orm);
+            addTech("🛡️", "Validación / Schemas", stack.validation);
+            addTech("⚙️", "Tareas de Fondo", stack.backgroundTasks);
+        } else {
+            // Frontend updates just use techStack fields correctly
+            const stack = data.techStack || {};
+            d3.select("#tech-framework").text(stack.framework || "React (Cliente)");
+            d3.select("#tech-state-local").text(stack.stateLocal || "React Context / State");
+            d3.select("#tech-state-server").text(stack.stateServer || "Fetch API / Nativo");
+            d3.select("#tech-validation").text(stack.validation || "TypeScript");
+            d3.select("#tech-styling").text(stack.styling || "CSS nativo");
+            d3.select("#tech-forms").text(stack.forms || "Formularios nativos");
+            d3.select("#tech-ui").text(stack.uiComponents || "Ninguno");
+        }
 
         // Estado de Radio de Impacto
         let activeBlastSource = null;

@@ -1,7 +1,7 @@
 {
-  "name": "antigravity-react-project-graph",
-  "displayName": "React Project Graph",
-  "description": "Visualiza el grafo de dependencias de tu proyecto React de manera interactiva y premium.",
+  "name": "antigravity-project-graph",
+  "displayName": "Project Graph",
+  "description": "Visualiza el grafo de dependencias de tu proyecto de manera interactiva y premium.",
   "version": "1.0.0",
   "publisher": "nedagosa",
   "icon": "icon.png",
@@ -16,17 +16,17 @@
   "contributes": {
     "commands": [
       {
-        "command": "antigravity-react-project-graph.showGraph",
+        "command": "antigravity-project-graph.showGraph",
         "title": "Grafo📍",
-        "category": "React Project Graph"
+        "category": "Project Graph"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "antigravity-react-project-graph.showGraph",
+          "command": "antigravity-project-graph.showGraph",
           "group": "navigation",
-          "when": "resourceExtname == .js || resourceExtname == .jsx || resourceExtname == .ts || resourceExtname == .tsx"
+          "when": "resourceExtname == .js || resourceExtname == .jsx || resourceExtname == .ts || resourceExtname == .tsx || resourceExtname == .py"
         }
       ]
     }

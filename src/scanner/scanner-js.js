@@ -54,11 +54,51 @@ function clasificarCapaJS(idArchivo) {
     return 'presentation';
 }
 
-function procesarArchivoJS(rutaProyecto, rutaArchivo, tamañoArchivo, grafo, isRootScan) {
+function clasificarCapaNode(idArchivo) {
+    const pathLower = idArchivo.toLowerCase();
+    const baseName = path.basename(idArchivo).toLowerCase();
+
+    // 1. Models / Entities / DTOs
+    if (
+        pathLower.includes('/models/') || pathLower.includes('/entities/') || pathLower.includes('/dto/') || pathLower.includes('/schemas/') ||
+        baseName.includes('.entity.') || baseName.includes('.dto.') || baseName.includes('.model.') || baseName.includes('.schema.') ||
+        pathLower.endsWith('/models') || pathLower.endsWith('/entities') || pathLower.endsWith('/dto')
+    ) {
+        return 'models';
+    }
+
+    // 2. Routers / Controllers / Resolvers
+    if (
+        pathLower.includes('/controllers/') || pathLower.includes('/resolvers/') || pathLower.includes('/routers/') || pathLower.includes('/routes/') ||
+        baseName.includes('.controller.') || baseName.includes('.resolver.') || baseName.includes('.router.') || baseName.includes('.route.')
+    ) {
+        return 'routers';
+    }
+
+    // 3. Services / Providers / Use Cases
+    if (
+        pathLower.includes('/services/') || pathLower.includes('/providers/') || pathLower.includes('/usecases/') || pathLower.includes('/use-cases/') ||
+        baseName.includes('.service.') || baseName.includes('.provider.') || baseName.includes('.usecase.')
+    ) {
+        return 'services';
+    }
+
+    // 4. Infra / Modules / Guards / Interceptors / Middlewares
+    if (
+        pathLower.includes('/modules/') || pathLower.includes('/guards/') || pathLower.includes('/interceptors/') || pathLower.includes('/middlewares/') || pathLower.includes('/infra/') || pathLower.includes('/config/') ||
+        baseName.includes('.module.') || baseName.includes('.guard.') || baseName.includes('.interceptor.') || baseName.includes('.middleware.') || baseName.includes('.config.')
+    ) {
+        return 'infra';
+    }
+
+    return 'presentation';
+}
+
+function procesarArchivoJS(rutaProyecto, rutaArchivo, tamañoArchivo, grafo, isRootScan, tipoEntorno = 'frontend') {
     const rutaRelativa = path.relative(rutaProyecto, rutaArchivo);
     const idArchivo = rutaRelativa.replace(/\\/g, '/');
     const ext = path.extname(rutaArchivo).toLowerCase();
-    const capa = clasificarCapaJS(idArchivo);
+    const capa = tipoEntorno === 'backend-node' ? clasificarCapaNode(idArchivo) : clasificarCapaJS(idArchivo);
 
     let lineas = 0;
     let codigo = '';

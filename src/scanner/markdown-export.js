@@ -14,8 +14,8 @@ function generarContenidoMarkdown(grafo) {
     const stack = grafo.techStack || {};
     md += `## 🛠️ Stack Tecnológico & Integraciones Clave\n`;
     
-    if (grafo.tipoEntorno === 'backend') {
-        md += `- **Framework / Core:** ${stack.framework || 'Python (General)'}\n`;
+    if (grafo.tipoEntorno.startsWith('backend')) {
+        md += `- **Framework / Core:** ${stack.framework || (grafo.tipoEntorno === 'backend' ? 'Python (General)' : 'Node.js (General)')}\n`;
         md += `- **ORM / Base de Datos:** ${stack.orm || 'No detectado / Nativo'}\n`;
         md += `- **Control de Migraciones:** ${stack.migrations || 'Ninguno detectado'}\n`;
         if (stack.cache) md += `- **Sistema de Caché:** ${stack.cache}\n`;
@@ -36,7 +36,7 @@ function generarContenidoMarkdown(grafo) {
     let capas = [];
     let nombresCapas = {};
     
-    if (grafo.tipoEntorno === 'backend') {
+    if (grafo.tipoEntorno.startsWith('backend')) {
         capas = ['models', 'services', 'routers', 'infra', 'asset', 'external', 'missing'];
         nombresCapas = {
             models: 'Modelos (Entidades)',

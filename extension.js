@@ -17,26 +17,47 @@ function activate(context) {
         const rutaProyecto = workspaceFolders[0].uri.fsPath;
 
         // Detección de entorno (Raíz y Nivel 1)
-        let hasPackageJson = false;
-        let hasRequirementsTxt = false;
+        let hasFrontend = false;
+        let hasBackendNode = false;
+        let hasBackendPython = false;
+        
+        let pathFrontend = rutaProyecto;
+        let pathBackendNode = rutaProyecto;
+        let pathBackendPython = rutaProyecto;
         
         try {
             const checkFile = (dir, file) => fs.existsSync(path.join(dir, file));
             
+            const evaluarPackageJson = (dir) => {
+                try {
+                    const content = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'));
+                    const deps = { ...(content.dependencies || {}), ...(content.devDependencies || {}) };
+                    if (deps['@nestjs/core'] || deps['express'] || deps['fastify']) {
+                        hasBackendNode = true;
+                        pathBackendNode = dir;
+                    } else {
+                        hasFrontend = true;
+                        pathFrontend = dir;
+                    }
+                } catch (e) {}
+            };
+
             // 1. Revisar raíz
-            hasPackageJson = checkFile(rutaProyecto, 'package.json');
-            hasRequirementsTxt = checkFile(rutaProyecto, 'requirements.txt') || checkFile(rutaProyecto, 'pyproject.toml') || checkFile(rutaProyecto, 'Pipfile') || checkFile(rutaProyecto, 'setup.py');
+            if (checkFile(rutaProyecto, 'package.json')) evaluarPackageJson(rutaProyecto);
+            if (checkFile(rutaProyecto, 'requirements.txt') || checkFile(rutaProyecto, 'pyproject.toml') || checkFile(rutaProyecto, 'Pipfile') || checkFile(rutaProyecto, 'setup.py')) {
+                hasBackendPython = true;
+                pathBackendPython = rutaProyecto;
+            }
             
-            // 2. Revisar directorios de primer nivel si no se encontraron en la raíz
-            if (!hasPackageJson || !hasRequirementsTxt) {
-                const items = fs.readdirSync(rutaProyecto);
-                for (const item of items) {
-                    const subPath = path.join(rutaProyecto, item);
-                    if (fs.statSync(subPath).isDirectory() && !['node_modules', '.git', '.vscode'].includes(item)) {
-                        if (!hasPackageJson && checkFile(subPath, 'package.json')) hasPackageJson = true;
-                        if (!hasRequirementsTxt && (checkFile(subPath, 'requirements.txt') || checkFile(subPath, 'pyproject.toml') || checkFile(subPath, 'Pipfile') || checkFile(subPath, 'setup.py'))) {
-                            hasRequirementsTxt = true;
-                        }
+            // 2. Revisar directorios de primer nivel
+            const items = fs.readdirSync(rutaProyecto);
+            for (const item of items) {
+                const subPath = path.join(rutaProyecto, item);
+                if (fs.statSync(subPath).isDirectory() && !['node_modules', '.git', '.vscode', '.venv', 'venv'].includes(item)) {
+                    if (checkFile(subPath, 'package.json')) evaluarPackageJson(subPath);
+                    if (!hasBackendPython && (checkFile(subPath, 'requirements.txt') || checkFile(subPath, 'pyproject.toml') || checkFile(subPath, 'Pipfile') || checkFile(subPath, 'setup.py'))) {
+                        hasBackendPython = true;
+                        pathBackendPython = subPath;
                     }
                 }
             }
@@ -45,14 +66,16 @@ function activate(context) {
         }
         
         let entornosDisponibles = [];
-        if (hasPackageJson) entornosDisponibles.push({ label: '🌐 Grafo Frontend (JavaScript/TypeScript)', value: 'frontend' });
-        if (hasRequirementsTxt) entornosDisponibles.push({ label: '⚙️ Grafo Backend (Python)', value: 'backend' });
+        if (hasFrontend) entornosDisponibles.push({ label: '🌐 Grafo Frontend (React/Vue/Etc)', value: 'frontend', rutaTarget: pathFrontend });
+        if (hasBackendNode) entornosDisponibles.push({ label: '⚙️ Grafo Backend (Node.js/NestJS)', value: 'backend-node', rutaTarget: pathBackendNode });
+        if (hasBackendPython) entornosDisponibles.push({ label: '🐍 Grafo Backend (Python)', value: 'backend', rutaTarget: pathBackendPython });
         
         if (entornosDisponibles.length === 0) {
-            entornosDisponibles.push({ label: '🌐 Grafo Predeterminado (JS/TS)', value: 'frontend' });
+            entornosDisponibles.push({ label: '🌐 Grafo Predeterminado (JS/TS)', value: 'frontend', rutaTarget: rutaProyecto });
         }
         
         let entornoSeleccionado = entornosDisponibles[0].value;
+        let rutaEspecifica = entornosDisponibles[0].rutaTarget || rutaProyecto;
         
         if (entornosDisponibles.length > 1) {
             const seleccionEntorno = await vscode.window.showQuickPick(entornosDisponibles, {
@@ -60,6 +83,7 @@ function activate(context) {
             });
             if (!seleccionEntorno) return;
             entornoSeleccionado = seleccionEntorno.value;
+            rutaEspecifica = seleccionEntorno.rutaTarget || rutaProyecto;
         }
 
         // Detectar si hay un archivo activo en el editor
@@ -68,8 +92,8 @@ function activate(context) {
         let activeFileName = '';
         if (activeEditor) {
             const activeFilePath = activeEditor.document.uri.fsPath;
-            if (activeFilePath.startsWith(rutaProyecto)) {
-                activeFileId = path.relative(rutaProyecto, activeFilePath).replace(/\\/g, '/');
+            if (activeFilePath.startsWith(rutaEspecifica)) {
+                activeFileId = path.relative(rutaEspecifica, activeFilePath).replace(/\\/g, '/');
                 activeFileName = path.basename(activeFilePath);
             }
         }
@@ -112,7 +136,8 @@ function activate(context) {
             progress.report({ message: "Escaneando archivos y construyendo grafo..." });
             
             try {
-                const grafo = obtenerGrafo(rutaProyecto, entornoSeleccionado);
+                // PASAMOS RUTA ESPECÍFICA EN VEZ DE LA RAÍZ DEL ESPACIO DE TRABAJO
+                const grafo = obtenerGrafo(rutaEspecifica, entornoSeleccionado);
 
                 if (grafo.nodes.length === 0) {
                     vscode.window.showWarningMessage('No se encontraron archivos válidos en este proyecto para el entorno seleccionado.');
@@ -145,9 +170,9 @@ function activate(context) {
                         );
                     } else if (message.command === 'exportarMarkdown') {
                         try {
-                            const grafoActual = obtenerGrafo(rutaProyecto, entornoSeleccionado);
+                            const grafoActual = obtenerGrafo(rutaEspecifica, entornoSeleccionado);
                             const contenidoMd = generarContenidoMarkdown(grafoActual);
-                            const rutaArchivo = path.join(rutaProyecto, 'project_architecture.md');
+                            const rutaArchivo = path.join(rutaEspecifica, 'project_architecture.md');
                             fs.writeFileSync(rutaArchivo, contenidoMd, 'utf8');
                             vscode.window.showInformationMessage('¡Plano arquitectónico de IA exportado a "project_architecture.md" con éxito!');
                         } catch (error) {
@@ -159,11 +184,11 @@ function activate(context) {
                 // Suscribirse a cambios al guardar archivos para actualizar el grafo en tiempo real
                 const saveSubscription = vscode.workspace.onDidSaveTextDocument(document => {
                     const filePath = document.uri.fsPath;
-                    if (filePath.startsWith(rutaProyecto)) {
+                    if (filePath.startsWith(rutaEspecifica)) {
                         const ext = path.extname(filePath).toLowerCase();
                         if (['.js', '.jsx', '.ts', '.tsx', '.json', '.py'].includes(ext)) {
                             try {
-                                const nuevoGrafo = obtenerGrafo(rutaProyecto, entornoSeleccionado);
+                                const nuevoGrafo = obtenerGrafo(rutaEspecifica, entornoSeleccionado);
                                 panel.webview.postMessage({
                                     command: 'actualizarGrafo',
                                     grafo: nuevoGrafo

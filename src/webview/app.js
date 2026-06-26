@@ -457,7 +457,7 @@
 
         // Configuración de visualización de Capas
         let capaEspanol = {};
-        if (data.tipoEntorno === 'backend') {
+        if (data.tipoEntorno.startsWith('backend')) {
             capaEspanol = {
                 'models': 'Modelos (Entidades)',
                 'services': 'Servicios (Lógica de Negocio)',
@@ -496,7 +496,7 @@
         };
 
         let layerColumns = {};
-        if (data.tipoEntorno === 'backend') {
+        if (data.tipoEntorno.startsWith('backend')) {
             layerColumns = {
                 'external': 0.08,
                 'models': 0.22,
@@ -520,7 +520,7 @@
         }
 
         let columnLabels = [];
-        if (data.tipoEntorno === 'backend') {
+        if (data.tipoEntorno.startsWith('backend')) {
             columnLabels = [
                 { name: 'Externo', x: 0.08 },
                 { name: 'Modelos', x: 0.22 },
@@ -542,7 +542,7 @@
         }
 
         // UPDATE UI DOM DEPENDING ON ENVIRONMENT
-        if (data.tipoEntorno === 'backend') {
+        if (data.tipoEntorno.startsWith('backend')) {
             const legendBody = d3.select("#legend-body");
             legendBody.html(""); // clear legend
             Object.keys(capaEspanol).forEach(layer => {

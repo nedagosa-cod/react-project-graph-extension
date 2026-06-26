@@ -139,6 +139,62 @@ function analizarTechStackPy(rutaProyecto, grafo) {
     }
 }
 
+function analizarTechStackNode(rutaProyecto, grafo) {
+    let packageJsonPath = path.join(rutaProyecto, 'package.json');
+    if (!fs.existsSync(packageJsonPath)) {
+        try {
+            const items = fs.readdirSync(rutaProyecto);
+            for (const item of items) {
+                const subPath = path.join(rutaProyecto, item);
+                if (fs.statSync(subPath).isDirectory() && !['node_modules', '.git', '.vscode', 'dist', 'build'].includes(item)) {
+                    const candidate = path.join(subPath, 'package.json');
+                    if (fs.existsSync(candidate)) {
+                        packageJsonPath = candidate;
+                        break;
+                    }
+                }
+            }
+        } catch (e) {}
+    }
+
+    if (fs.existsSync(packageJsonPath)) {
+        try {
+            const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+            const deps = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
+            
+            // Framework
+            if (deps['@nestjs/core']) grafo.techStack.framework = `NestJS (${deps['@nestjs/core']})`;
+            else if (deps['express']) grafo.techStack.framework = `Express (${deps['express']})`;
+            else if (deps['fastify']) grafo.techStack.framework = `Fastify (${deps['fastify']})`;
+
+            // ORM / DB
+            if (deps['@prisma/client'] || deps['prisma']) grafo.techStack.orm = `Prisma`;
+            else if (deps['typeorm']) grafo.techStack.orm = `TypeORM`;
+            else if (deps['mongoose']) grafo.techStack.orm = `Mongoose (MongoDB)`;
+
+            // Background Tasks / Sockets
+            if (deps['@nestjs/websockets'] || deps['socket.io']) grafo.techStack.backgroundTasks = `WebSockets (Socket.io)`;
+            else if (deps['bull'] || deps['bullmq']) grafo.techStack.backgroundTasks = `BullMQ / Redis`;
+
+            // Cache
+            if (deps['redis'] || deps['ioredis']) grafo.techStack.cache = `Redis`;
+            else if (deps['cache-manager']) grafo.techStack.cache = `Cache Manager`;
+
+            // Validation
+            if (deps['class-validator']) grafo.techStack.validation = `Class Validator`;
+            else if (deps['zod']) grafo.techStack.validation = `Zod`;
+            else if (deps['joi']) grafo.techStack.validation = `Joi`;
+
+            // Migrations (Usually handled by Prisma/TypeORM, but we can infer)
+            if (deps['@prisma/client']) grafo.techStack.migrations = `Prisma Migrate`;
+
+            grafo.npmVulnerabilities = evaluarVulnerabilidadesNPM(deps);
+        } catch (error) {
+            console.log(`⚠️ No se pudo leer package.json: ${error.message}`);
+        }
+    }
+}
+
 function obtenerGrafo(rutaProyecto, tipoEntorno = 'frontend') {
     const grafo = {
         nodes: [],
@@ -146,22 +202,26 @@ function obtenerGrafo(rutaProyecto, tipoEntorno = 'frontend') {
         tipoEntorno: tipoEntorno,
         npmVulnerabilities: [],
         techStack: {
-            framework: tipoEntorno === 'frontend' ? 'React (Cliente)' : 'Python (General)',
+            framework: tipoEntorno === 'frontend' ? 'React (Cliente)' : 'Node.js (General)',
             stateLocal: tipoEntorno === 'frontend' ? 'React State / Context' : 'N/A',
             stateServer: tipoEntorno === 'frontend' ? 'Fetch API / Nativo' : 'N/A',
             validation: 'Ninguno',
             styling: tipoEntorno === 'frontend' ? 'CSS nativo' : 'N/A',
             forms: tipoEntorno === 'frontend' ? 'Formularios nativos' : 'N/A',
             uiComponents: tipoEntorno === 'frontend' ? 'Ninguno' : 'N/A',
-            orm: tipoEntorno === 'backend' ? 'N/A' : undefined,
-            backgroundTasks: tipoEntorno === 'backend' ? 'Ninguna' : undefined
+            orm: tipoEntorno.startsWith('backend') ? 'N/A' : undefined,
+            backgroundTasks: tipoEntorno.startsWith('backend') ? 'Ninguna' : undefined
         }
     };
 
     const excluidosGlobales = ['node_modules', '.git', '.next', 'dist', 'build', 'out', '.vscode', '.idea', 'public', '.agents', '.gemini', '.venv', 'venv', 'env', '__pycache__'];
     
-    if (tipoEntorno === 'frontend') {
-        analizarTechStackJS(rutaProyecto, grafo);
+    if (tipoEntorno === 'frontend' || tipoEntorno === 'backend-node') {
+        if (tipoEntorno === 'frontend') {
+            analizarTechStackJS(rutaProyecto, grafo);
+        } else {
+            analizarTechStackNode(rutaProyecto, grafo);
+        }
 
         let startDir = path.join(rutaProyecto, 'src');
         let isRootScan = false;
@@ -178,7 +238,7 @@ function obtenerGrafo(rutaProyecto, tipoEntorno = 'frontend') {
                         return;
                     }
                 }
-                procesarArchivoJS(rutaProyecto, rutaArchivo, tamañoArchivo, grafo, isRootScan);
+                procesarArchivoJS(rutaProyecto, rutaArchivo, tamañoArchivo, grafo, isRootScan, tipoEntorno);
             }
         });
 

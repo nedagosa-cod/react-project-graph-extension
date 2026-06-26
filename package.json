@@ -2,7 +2,7 @@
   "name": "antigravity-project-graph",
   "displayName": "Project Graph",
   "description": "Visualiza el grafo de dependencias de tu proyecto de manera interactiva y premium.",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "publisher": "nedagosa",
   "icon": "icon.png",
   "engines": {

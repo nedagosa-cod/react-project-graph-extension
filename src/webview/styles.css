@@ -628,20 +628,23 @@ body {
 /* Transiciones de Minimización */
 #legend, #controls {
     transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), padding 0.35s ease, gap 0.35s ease, border-radius 0.35s ease;
-    max-height: 1200px;
-    overflow: hidden;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 #legend.minimized {
     max-height: 38px;
     padding-top: 12px;
     padding-bottom: 12px;
     gap: 0 !important;
+    overflow: hidden;
 }
 #controls.minimized {
     max-height: 38px;
     padding-top: 12px;
     padding-bottom: 12px;
     gap: 0 !important;
+    overflow: hidden;
 }
 .minimized .panel-header {
     border-bottom: 1px solid transparent;
